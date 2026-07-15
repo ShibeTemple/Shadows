@@ -1,0 +1,26 @@
+{
+  "type": "vibrancy:subtle",
+  "shape": 1,
+  "color": {
+    "default": [ 0.85, 0.57, 0.06 ],
+    "entries": [
+      {
+        "matches": {
+          "flame_type": "soul"
+        },
+        "value": [ 0.48, 1, 1 ]
+      }
+    ]
+  },
+  "brightness": {
+    "default": 2,
+    "entries": [
+      {
+        "matches": {
+          "flame_type": "soul"
+        },
+        "value": 1.6
+      }
+    ]
+  }
+}

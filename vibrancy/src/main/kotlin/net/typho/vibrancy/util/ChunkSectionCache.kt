@@ -1,0 +1,75 @@
+package net.typho.vibrancy.util
+
+//? if >=1.21.2 {
+/*import net.minecraft.core.BlockBox
+*///? }
+import net.minecraft.core.BlockPos
+import net.minecraft.core.SectionPos
+import net.minecraft.world.level.Level
+import net.minecraft.world.level.block.Blocks
+import net.minecraft.world.level.block.state.BlockState
+import net.minecraft.world.level.chunk.LevelChunkSection
+import net.typho.big_shot_lib.api.math.rect.AbstractRect3
+import net.typho.big_shot_lib.api.math.rect.NeoRect3i
+import net.typho.big_shot_lib.api.math.vec.blockPos
+
+class ChunkSectionCache(
+    @JvmField
+    val level: Level
+) {
+    @JvmField
+    val sections = hashMapOf<SectionPos, LevelChunkSection>()
+
+    operator fun get(pos: SectionPos) = sections.computeIfAbsent(pos) { pos ->
+        level.getChunk(pos.x, pos.z).let { it.getSection(it.getSectionIndexFromSectionY(pos.y)) }
+    }
+
+    operator fun get(pos: BlockPos) = if (level.isOutsideBuildHeight(pos)) {
+        Blocks.VOID_AIR.defaultBlockState()
+    } else {
+        get(SectionPos.of(pos)).getBlockState(pos.x and 15, pos.y and 15, pos.z and 15)
+    }
+
+    fun get(min: BlockPos, max: BlockPos): Iterator<Pair<BlockPos, BlockState>> {
+        val min = min.atY(min.y.coerceAtLeast(level.minBuildHeight).coerceAtMost(level.maxBuildHeight))
+        val max = max.atY(max.y.coerceAtLeast(level.minBuildHeight).coerceAtMost(level.maxBuildHeight))
+
+        val pos = BlockPos.MutableBlockPos().set(min)
+        val minSection = SectionPos.of(min)
+        val maxSection = SectionPos.of(max)
+        val sections = Offset3DArray(
+            NeoRect3i(minSection.x, minSection.y, minSection.z, maxSection.x, maxSection.y, maxSection.z),
+            Offset3DArray.FlatInitializer { x, y, z -> this[SectionPos.of(x, y, z)] }
+        )
+
+        return object : Iterator<Pair<BlockPos, BlockState>> {
+            override fun hasNext(): Boolean {
+                return pos.x <= max.x
+            }
+
+            override fun next(): Pair<BlockPos, BlockState> {
+                val item = sections.get(SectionPos.blockToSectionCoord(pos.x), SectionPos.blockToSectionCoord(pos.y), SectionPos.blockToSectionCoord(pos.z)).getBlockState(pos.x and 15, pos.y and 15, pos.z and 15)
+
+                pos.z++
+
+                if (pos.z > max.z) {
+                    pos.z = min.z
+                    pos.y++
+
+                    if (pos.y > max.y) {
+                        pos.y = min.y
+                        pos.x++
+                    }
+                }
+
+                return pos to item
+            }
+        }
+    }
+
+    //? if >=1.21.2 {
+    /*operator fun get(box: BlockBox) = get(box.min, box.max)
+    *///? }
+
+    operator fun get(box: AbstractRect3<Int>) = get(box.min.blockPos, box.max.blockPos)
+}

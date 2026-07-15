@@ -1,0 +1,17 @@
+{
+  "type": "vibrancy:subtle",
+  "shape": 1,
+  "color": [ 0.92, 0.53, 0.19 ],
+  "brightness": 1,
+  "enabled": {
+    "default": false,
+    "entries": [
+      {
+        "matches": {
+          "berries": "true"
+        },
+        "value": true
+      }
+    ]
+  }
+}

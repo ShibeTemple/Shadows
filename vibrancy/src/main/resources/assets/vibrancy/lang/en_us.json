@@ -1,0 +1,101 @@
+{
+  "config.vibrancy.title": "Vibrancy Config",
+
+  "config.vibrancy.general": "General",
+
+  "config.vibrancy.general.modEnabled": "Mod Enabled",
+  "config.vibrancy.general.useMultithreading": "Use Multithreading",
+  "config.vibrancy.general.asyncThreads": "Async Threads",
+  "config.vibrancy.general.limitLightBrightness": "Limit Light Brightness",
+  "config.vibrancy.general.limitLightBrightness.tooltip0": "Limits how bright Vibrancy lights can make each pixel.",
+  "config.vibrancy.general.limitLightBrightness.tooltip1": "Better for videos in some situations, but loses some detail and quality.",
+  "config.vibrancy.general.flickerStrength": "Flicker Strength",
+  "config.vibrancy.general.flickerStrength.tooltip": "Global multiplier for all light flickering, set to 0 to disable them.",
+
+  "config.vibrancy.specularReflections": "Specular Reflections",
+
+  "config.vibrancy.specularReflections.enabled": "Enabled",
+  "config.vibrancy.specularReflections.strength": "Strength",
+  "config.vibrancy.specularReflections.exponent": "Exponent",
+
+  "config.vibrancy.entityShadows": "Entity Shadows",
+
+  "config.vibrancy.entityShadows.enabled": "Enabled",
+  "config.vibrancy.entityShadows.blockEntityShadows": "Block Entity Shadows",
+  "config.vibrancy.entityShadows.distance": "Distance",
+  "config.vibrancy.entityShadows.distance.tooltip": "The distance from camera in chunks where lights can have entity shadows.",
+  "config.vibrancy.entityShadows.maxLights": "Max Lights",
+  "config.vibrancy.entityShadows.maxLights.tooltip": "The maximum number of lights that can have entity shadows, closest to camera first.",
+
+  "config.vibrancy.inventoryLights": "Inventory Lights",
+
+  "config.vibrancy.inventoryLights.enabled": "Enabled",
+  "config.vibrancy.inventoryLights.scale": "Scale",
+  "config.vibrancy.inventoryLights.brightness": "Brightness",
+  "config.vibrancy.inventoryLights.shadows": "Shadows",
+
+  "config.vibrancy.blockLights": "Block Lights",
+
+  "config.vibrancy.blockLights.raytraced": "Raytraced",
+  "config.vibrancy.blockLights.raytraced.enabled": "Enabled",
+  "config.vibrancy.blockLights.raytraced.maxRendered": "Max Rendered",
+  "config.vibrancy.blockLights.raytraced.maxRendered.tooltip": "The maximum number of block lights that will be rendered, closest lights first.",
+  "config.vibrancy.blockLights.raytraced.brightness": "Brightness",
+  "config.vibrancy.blockLights.raytraced.brightness.tooltip0": "Linear multiplier for the brightness of all block lights.",
+  "config.vibrancy.blockLights.raytraced.brightness.tooltip1": "Does not affect their radius.",
+  "config.vibrancy.blockLights.raytraced.shadowRadius": "Shadow Radius",
+  "config.vibrancy.blockLights.raytraced.shadowRadius.tooltip": "The maximum radius (in blocks) from each block light where blocks will cast shadows.",
+  "config.vibrancy.blockLights.raytraced.maxHighQuality": "Max High Quality",
+  "config.vibrancy.blockLights.raytraced.maxHighQuality.tooltip": "The maximum number of lights that use composite rendering, fixing the side of grass blocks not looking right.",
+
+  "config.vibrancy.blockLights.subtle": "Subtle",
+  "config.vibrancy.blockLights.subtle.enabled": "Enabled",
+  "config.vibrancy.blockLights.subtle.renderDistance": "Render Distance",
+  "config.vibrancy.blockLights.subtle.brightness": "Brightness",
+  "config.vibrancy.blockLights.subtle.brightness.tooltip0": "Linear multiplier for the brightness of all block lights.",
+  "config.vibrancy.blockLights.subtle.brightness.tooltip1": "Does not affect their radius.",
+  "config.vibrancy.blockLights.subtle.cullingMode": "Culling Mode",
+  "config.vibrancy.blockLights.subtle.cullingMode.tooltip0": "Same Block Type - If all neighbors are the same block type as the light, get rid of the light",
+  "config.vibrancy.blockLights.subtle.cullingMode.tooltip1": "Solid - If all neighbors are a full solid block, get rid of the light",
+  "config.vibrancy.blockLights.subtle.cullingMode.tooltip2": "Not Air - If all neighbors are not air, get rid of the light",
+
+  "config.vibrancy.skyLights": "Sky Lights",
+  "config.vibrancy.skyLights.enabled": "Enabled",
+  "config.vibrancy.skyLights.shadow_distance": "Shadow Distance",
+  "config.vibrancy.skyLights.shadow_distance.tooltip": "The distance (in chunks) from the camera where shadows are calculated",
+  "config.vibrancy.skyLights.brightness": "Brightness",
+  "config.vibrancy.skyLights.resolution": "Resolution",
+  "config.vibrancy.skyLights.resolution.tooltip": "The quality of the shadows",
+  "config.vibrancy.skyLights.shadow_map_power": "Shadow Map Power",
+  "config.vibrancy.skyLights.translucent_enabled": "Translucency Enabled",
+
+  "key.category.vibrancy.keys": "Vibrancy",
+  "key.vibrancy.debug": "Modifier key",
+  "key.vibrancy.rebuild_all_shadows": "Rebuild all shadows",
+  "key.vibrancy.toggle_raytraced_block_lights": "Toggle raytraced block lights",
+  "key.vibrancy.toggle_subtle_block_lights": "Toggle subtle block lights",
+  "key.vibrancy.config": "Open config",
+
+  "debug.vibrancy.rebuild_all_shadows": "[%s] Reloaded all shadows",
+  "debug.vibrancy.enable_raytraced_block_lights": "[%s] Enabled raytraced block lights",
+  "debug.vibrancy.disable_raytraced_block_lights": "[%s] Disabled raytraced block lights",
+  "debug.vibrancy.enable_subtle_block_lights": "[%s] Enabled subtle block lights",
+  "debug.vibrancy.disable_subtle_block_lights": "[%s] Disabled subtle block lights",
+
+  "error.vibrancy.no_ssbos": "Vibrancy requires the GPU extension GL_ARB_shader_storage_buffer_object (included in OpenGL 4.3), which your system does not support. This can typically be solved by updating your GPU drivers. The mod has been disabled.",
+  "error.vibrancy.no_ssbos_mac": "Vibrancy requires the GPU extension GL_ARB_shader_storage_buffer_object (included in OpenGL 4.3), which MacOS does not support, and there is no way to fix it. The mod has been disabled.",
+  "error.vibrancy.amd": "Vibrancy currently does not work with AMD GPU drivers for an unknown reason. I can't debug this since I don't have a device with AMD drivers. If you are a rendering expert with AMD drivers and would like to help this get resolved, please join the discord server and notify me.",
+
+  "vibrancy.loading": "Loading Vibrancy lights...",
+
+  "same_neighbor": "Same Block Type",
+  "solid_neighbor": "Solid",
+  "non_air_neighbor": "Not Air",
+
+  "loading.vibrancy.raytraced_point": "Raytraced Point: %s",
+  "loading.vibrancy.subtle": "Subtle: %s",
+  "loading.vibrancy.overworld": "Overworld (Sky Light): %s",
+  "loading.vibrancy.timeout": "Times out in %s seconds",
+  "loading.vibrancy.tip1": "To get faster loads, increase the Async Threads option in Vibrancy config.",
+  "loading.vibrancy.tip2": "(this does use more of your CPU and might lag other apps while lights are generating)"
+}
