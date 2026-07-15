@@ -1,0 +1,116 @@
+package net.typho.big_shot_lib.mixin.impl.iface;
+
+import com.mojang.blaze3d.opengl.GlTexture;
+import com.mojang.blaze3d.textures.GpuTexture;
+import com.mojang.blaze3d.textures.TextureFormat;
+import dev.kikugie.fletching_table.annotation.MixinEnvironment;
+import net.typho.big_shot_lib.api.client.rendering.opengl.constant.GlTextureFormat;
+import net.typho.big_shot_lib.api.client.rendering.opengl.constant.GlTextureTarget;
+import net.typho.big_shot_lib.api.client.rendering.opengl.resource.bound.GlBoundTexture2D;
+import net.typho.big_shot_lib.api.client.rendering.opengl.resource.type.GlResourceType;
+import net.typho.big_shot_lib.api.client.rendering.opengl.resource.type.GlTexture2D;
+import net.typho.big_shot_lib.api.client.rendering.opengl.state.NeoGlStateManager;
+import net.typho.big_shot_lib.api.client.rendering.util.RenderingContext;
+import net.typho.big_shot_lib.api.util.KeyedDelegate;
+import net.typho.big_shot_lib.impl.client.rendering.internal.BoundMinecraftTexture;
+import net.typho.big_shot_lib.impl.util.ImmutableExtension;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
+import org.spongepowered.asm.mixin.Mixin;
+import org.spongepowered.asm.mixin.Shadow;
+
+//? if <1.21.5 {
+import dev.kikugie.fletching_table.annotation.MixinIgnore;
+
+@MixinIgnore
+//? }
+
+@MixinEnvironment(type = MixinEnvironment.Env.CLIENT)
+@Mixin(GlTexture.class)
+public abstract class GlTextureMixin extends GpuTexture implements ImmutableExtension<GlTexture2D> {
+    //? if <1.21.6 {
+    public GlTextureMixin(String string, TextureFormat textureFormat, int i, int j, int k) {
+        super(string, textureFormat, i, j, k);
+    }
+    //? } else {
+    /*public GlTextureMixin(int p_404771_, String p_405873_, TextureFormat p_405456_, int p_405638_, int p_404958_, int p_419943_, int p_423664_) {
+        super(p_404771_, p_405873_, p_405456_, p_405638_, p_404958_, p_419943_, p_423664_);
+    }
+    *///? }
+
+    @Shadow
+    public abstract int glId();
+
+    @Override
+    public GlTexture2D getBig_shot_lib$extension_value() {
+        return new GlTexture2D() {
+            @Override
+            public RenderingContext getContext() {
+                return RenderingContext.MAIN;
+            }
+
+            @Override
+            public @NotNull GlTextureFormat getFormat() {
+                return switch (GlTextureMixin.this.getFormat()) {
+                    case RGBA8 -> GlTextureFormat.RGBA8;
+                    case RED8 -> GlTextureFormat.R8;
+                    case DEPTH32 -> GlTextureFormat.DEPTH_COMPONENT32;
+                    //? if >=1.21.6 {
+                    /*case RED8I -> GlTextureFormat.R8I;
+                    *///? }
+                    //? neoforge {
+                    /*case DEPTH24_STENCIL8 -> GlTextureFormat.DEPTH24_STENCIL8;
+                    case DEPTH32_STENCIL8 -> GlTextureFormat.DEPTH32F_STENCIL8;
+                    *///? }
+                };
+            }
+
+            @Override
+            public void free() {
+                GlTextureMixin.this.close();
+            }
+
+            @Override
+            public int getGlId() {
+                return glId();
+            }
+
+            @Override
+            public boolean getFreed() {
+                return isClosed();
+            }
+
+            @Override
+            public @NotNull GlResourceType getType() {
+                return GlResourceType.TEXTURE;
+            }
+
+            @Override
+            public @NotNull GlBoundTexture2D bind(@NotNull GlTextureTarget target) {
+                return new BoundMinecraftTexture(
+                        this,
+                        target,
+                        NeoGlStateManager.Companion.getCURRENT().getTextures().get(target).push(glId()),
+                        getWidth(),
+                        getHeight(),
+                        getFormat()
+                );
+            }
+
+            @Override
+            public KeyedDelegate.ReadOnly<Integer, GlTextureFormat> getFormats() {
+                return level -> getFormat();
+            }
+
+            @Override
+            public KeyedDelegate.ReadOnly<Integer, Integer> getWidths() {
+                return GlTextureMixin.this::getWidth;
+            }
+
+            @Override
+            public KeyedDelegate.ReadOnly<Integer, Integer> getHeights() {
+                return GlTextureMixin.this::getHeight;
+            }
+        };
+    }
+}

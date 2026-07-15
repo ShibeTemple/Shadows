@@ -1,0 +1,34 @@
+{
+    "schemaVersion": 1,
+    "id": "big_shot_lib",
+    "version": "4.7.6.0",
+    "name": "Big Shot Rendering Library",
+    "description": "Minecraft rendering api for less mojank",
+    "authors": [
+        "The Typhothanian"
+    ],
+    "contact": {
+        "sources": "https://github.com/TheTypholorian/big_shot_lib"
+    },
+    "license": "MIT",
+    "icon": "big_shot_lib.png",
+    "environment": "client",
+    "mixins": [
+        "big_shot_lib.mixins.json"
+    ],
+    "depends": {
+        "fabricloader": "*",
+        "fabric-api-base": "*",
+        "minecraft": ">=1.20 <=1.20.1",
+        "fabric-language-kotlin": "*"
+    },
+    "accessWidener": "accesswideners/big_shot_lib.accesswidener",
+    "entrypoints": {
+        "client": [
+            "net.typho.big_shot_lib.impl.client.BigShotClientInit"
+        ],
+        "main": [
+            "net.typho.big_shot_lib.impl.BigShotCommonInit"
+        ]
+    }
+}

@@ -1,0 +1,33 @@
+{
+  "net.typho.big_shot_lib.api.client.util.BigShotClientEntrypoint": [
+    "net.typho.big_shot_lib.api.client.rendering.NeoShaderLoader"
+  ],
+  "net.typho.big_shot_lib.api.util.BigShotCommonEntrypoint": [
+    "net.typho.big_shot_lib.api.client.rendering.util.NeoVertexFormat$Companion",
+    "net.typho.big_shot_lib.api.client.rendering.NeoShaderLoader"
+  ],
+  "net.typho.big_shot_lib.api.client.rendering.opengl.GlQueue": [
+    "net.typho.big_shot_lib.impl.client.rendering.opengl.GlQueueImpl"
+  ],
+  "net.typho.big_shot_lib.api.InternalUtil": [
+    "net.typho.big_shot_lib.impl.InternalUtilImpl"
+  ],
+  "net.typho.big_shot_lib.api.util.BlockUtil": [
+    "net.typho.big_shot_lib.impl.util.BlockUtilImpl"
+  ],
+  "net.typho.big_shot_lib.api.util.WrapperUtil": [
+    "net.typho.big_shot_lib.impl.util.WrapperUtilImpl"
+  ],
+  "net.typho.big_shot_lib.api.util.platform.PlatformUtil": [
+    "net.typho.big_shot_lib.impl.util.platform.PlatformUtilImpl"
+  ],
+  "net.typho.big_shot_lib.api.client.rendering.opengl.state.NeoGlStateManager": [
+    "net.typho.big_shot_lib.impl.client.rendering.opengl.state.NeoGlStateManagerImpl"
+  ],
+  "net.typho.big_shot_lib.api.client.rendering.util.NeoRenderSettings$Builtins": [
+    "net.typho.big_shot_lib.impl.client.rendering.util.NeoRenderSettingsBuiltinsImpl"
+  ],
+  "net.typho.big_shot_lib.api.client.rendering.util.FogUtil": [
+    "net.typho.big_shot_lib.impl.client.rendering.util.FogUtilImpl"
+  ]
+}

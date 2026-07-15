@@ -1,0 +1,1 @@
+Minecraft's rendering utilities are terrible, and it's annoying that they change every other version. So I made this library mod that ignores all of that, and made my own system for compiling shaders, building meshes, and shader mixins.

@@ -1,0 +1,232 @@
+@file:Suppress("UnstableApiUsage")
+
+import net.fabricmc.loom.task.RemapJarTask
+import net.fabricmc.loom.task.RemapSourcesJarTask
+
+plugins {
+    kotlin("jvm")
+    alias(libs.plugins.loom)
+    id("dev.kikugie.postprocess.jsonlang")
+    //id("me.modmuss50.mod-publish-plugin")
+    id("com.google.devtools.ksp") version "2.2.0-2.0.2"
+    id("dev.kikugie.fletching-table.fabric") version "0.1.0-alpha.22"
+}
+
+kotlin {
+    compilerOptions {
+        freeCompilerArgs.add("-Xjvm-default=all")
+    }
+}
+
+sourceSets {
+    main {
+        java {
+            if (sc.current.parsed < "1.21.5") {
+                exclude("net/typho/big_shot_lib/mixin/impl/iface/GlBufferMixin.java")
+                exclude("net/typho/big_shot_lib/mixin/impl/iface/GlTextureMixin.java")
+            }
+
+            if (sc.current.parsed >= "1.21") {
+                exclude("net/typho/big_shot_lib/mixin/impl/VertexFormatAccessor.java")
+                exclude("net/typho/big_shot_lib/mixin/impl/RenderTypeAccessor.java")
+            }
+
+            if (sc.current.parsed < "1.21.9") {
+                exclude("net/typho/big_shot_lib/mixin/impl/DebugScreenEntriesAccessor.java")
+            }
+
+            if (sc.current.parsed >= "1.21.9") {
+                exclude("net/typho/big_shot_lib/mixin/impl/DebugScreenOverlayMixin.java")
+            }
+
+            if (sc.current.parsed < "1.21") {
+                exclude("net/typho/big_shot_lib/mixin/impl/VertexFormatElementAccessor.java")
+            }
+
+            if (sc.current.parsed > "1.21") {
+                exclude("net/typho/big_shot_lib/mixin/impl/iface/ShaderInstanceMixin.java")
+            }
+
+            if (sc.current.parsed < "1.21.11") {
+                exclude("net/typho/big_shot_lib/mixin/impl/iface/GlSamplerMixin.java")
+                exclude("net/typho/big_shot_lib/mixin/impl/iface/RenderSetupMixin.java")
+            }
+
+            if (sc.current.parsed >= "1.21.11") {
+                exclude("net/typho/big_shot_lib/mixin/impl/iface/CompositeRenderTypeMixin.java")
+            }
+
+            if (sc.current.parsed >= "1.21.5") {
+                exclude("net/typho/big_shot_lib/mixin/impl/iface/TransparencyStateShardMixin.java")
+                exclude("net/typho/big_shot_lib/mixin/impl/iface/RenderStateShardMixin.java")
+            }
+        }
+    }
+}
+
+fletchingTable {
+    mixins.create("main") {
+        mixin("default", "${project.property("mod.id")}.mixins.json")
+    }
+}
+
+val accessWidener = when {
+    stonecutter.eval(stonecutter.current.version, ">=1.21.11") -> "accesswideners/big_shot_lib-1.21.11.accesswidener"
+    stonecutter.eval(stonecutter.current.version, ">=1.21.5") -> "accesswideners/big_shot_lib-1.21.5.accesswidener"
+    stonecutter.eval(stonecutter.current.version, ">=1.21.2") -> "accesswideners/big_shot_lib-1.21.2.accesswidener"
+    else -> "accesswideners/big_shot_lib.accesswidener"
+}
+
+tasks.withType<RemapJarTask> {
+    destinationDirectory.set(rootProject.file("build/libs/${project(":api").version}"))
+}
+
+tasks.withType<RemapSourcesJarTask> {
+    destinationDirectory.set(rootProject.file("build/libs/${project(":api").version}"))
+}
+
+tasks.named<ProcessResources>("processResources") {
+    val props = HashMap<String, String>().apply {
+        this["minecraft"] = (project.property("deps.minecraft_range") ?: project.property("deps.minecraft")) as String
+        this["java"] = when {
+            sc.current.parsed >= "1.20.5" -> "21"
+            sc.current.parsed >= "1.18" -> "17"
+            sc.current.parsed >= "1.17" -> "16"
+            else -> "8"
+        }
+        this["mod_id"] = project.property("mod.id") as String
+        this["mod_name"] = project.property("mod.name") as String
+        this["mod_version"] = project.property("mod.version") as String
+        this["mod_author"] = project.property("mod.author") as String
+        this["mod_description"] = project.property("mod.description") as String
+        this["mod_credits"] = project.property("mod.credits") as String
+        this["mod_license"] = project.property("mod.license") as String
+        this["access_widener"] = accessWidener
+        this["vibrancy_incompat_version"] = project.property("vibrancyIncompatVersion") as String
+    }
+
+    inputs.properties(props)
+
+    filesMatching(listOf("fabric.mod.json", "META-INF/neoforge.mods.toml", "META-INF/mods.toml", "**/*.mixins.json")) {
+        expand(props)
+    }
+}
+
+version = "${property("mod.version")}+${property("deps.minecraft")}-fabric"
+base.archivesName = property("mod.id") as String
+
+loom {
+    accessWidenerPath = rootProject.file("src/main/resources/${accessWidener}")
+}
+
+jsonlang {
+    languageDirectories = listOf("assets/${property("mod.id")}/lang")
+    prettyPrint = true
+}
+
+repositories {
+    mavenLocal()
+    maven("https://api.modrinth.com/maven")
+}
+
+tasks.withType<Javadoc>().configureEach {
+    enabled = false
+}
+
+dependencies {
+    minecraft("com.mojang:minecraft:${property("deps.minecraft")}")
+    mappings(loom.layered {
+        officialMojangMappings()
+        if (hasProperty("deps.parchment"))
+            parchment("org.parchmentmc.data:parchment-${property("deps.parchment")}@zip")
+    })
+    modImplementation("net.fabricmc:fabric-loader:0.17.3")
+    modImplementation("net.fabricmc.fabric-api:fabric-api:${property("deps.fabric-api")}")
+    modImplementation(libs.flk)
+    val sodiumDep = if (hasProperty("deps.sodium")) "maven.modrinth:sodium:${property("deps.sodium")}" else libs.sodium.get().toString()
+    modImplementation(sodiumDep)
+}
+
+fabricApi {
+    configureDataGeneration() {
+        outputDirectory = file("$rootDir/src/main/generated")
+        //client = true
+    }
+}
+
+tasks {
+    processResources {
+        exclude("**/neoforge.mods.toml", "**/mods.toml")
+    }
+
+    register<Copy>("buildAndCollect") {
+        group = "build"
+        from(remapJar.map { it.archiveFile })
+        into(rootProject.layout.buildDirectory.file("libs/${project.property("mod.version")}"))
+        dependsOn("build")
+    }
+}
+
+java {
+    val javaCompat = when {
+        sc.current.parsed >= "1.20.5" -> JavaVersion.VERSION_21
+        sc.current.parsed >= "1.18" -> JavaVersion.VERSION_17
+        sc.current.parsed >= "1.17" -> JavaVersion.VERSION_16
+        else -> JavaVersion.VERSION_1_8
+    }
+    sourceCompatibility = javaCompat
+    targetCompatibility = javaCompat
+}
+
+kotlin {
+    jvmToolchain(
+        when {
+            sc.current.parsed >= "1.20.5" -> 21
+            sc.current.parsed >= "1.18" -> 17
+            sc.current.parsed >= "1.17" -> 16
+            else -> 8
+        }
+    )
+}
+
+val additionalVersionsStr = findProperty("publish.additionalVersions") as String?
+val additionalVersions: List<String> = additionalVersionsStr
+    ?.split(",")
+    ?.map { it.trim() }
+    ?.filter { it.isNotEmpty() }
+    ?: emptyList()
+
+/*
+publishMods {
+    file = tasks.remapJar.map { it.archiveFile.get() }
+    additionalFiles.from(tasks.remapSourcesJar.map { it.archiveFile.get() })
+
+    type = BETA
+    displayName = "${property("mod.name")} ${property("mod.version")} for ${stonecutter.current.version} Fabric"
+    version = "${property("mod.version")}+${stonecutter.current.version}-fabric"
+    changelog = provider { rootProject.file("CHANGELOG.md").readText() }
+    modLoaders.add("fabric")
+
+    modrinth {
+        projectId = property("publish.modrinth") as String
+        accessToken = env.MODRINTH_API_KEY.orNull()
+        minecraftVersions.add(stonecutter.current.version)
+        minecraftVersions.addAll(additionalVersions)
+        requires("fabric-api", "fabric-language-kotlin")
+    }
+
+    curseforge {
+        projectId = property("publish.curseforge") as String
+        accessToken = env.CURSEFORGE_API_KEY.orNull()
+        minecraftVersions.add(stonecutter.current.version)
+        minecraftVersions.addAll(additionalVersions)
+        requires("fabric-api", "fabric-language-kotlin")
+    }
+}
+ */
+
+sourceSets.named("main") {
+    java.srcDirs(project(":api").sourceSets["main"].java.srcDirs)
+    kotlin.srcDirs(project(":api").sourceSets["main"].kotlin.srcDirs)
+    resources.srcDirs(project(":api").sourceSets["main"].resources.srcDirs)
+}
