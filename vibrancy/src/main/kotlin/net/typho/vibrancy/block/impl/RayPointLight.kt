@@ -176,7 +176,6 @@ open class RayPointLight(
         }
     ) { mesh, info, profiler ->
         meshData = info
-        Vibrancy.LOGGER.info("DIAG blit lambda: numFaces=${info.numFaces} atlas=${info.sections.size.x}x${info.sections.size.y}")
 
         profiler.push("resize")
         staticTexture.resize(info.sections.size.x, info.sections.size.y)

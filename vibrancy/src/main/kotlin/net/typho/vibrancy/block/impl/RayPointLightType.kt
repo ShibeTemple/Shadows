@@ -84,9 +84,7 @@ object RayPointLightType : BlockLightType<RayPointLightInfo, HashMapBlockLightSt
                     profiler.pop()
 
                     val highQualityDistance = 2f * 2f * 16f * 16f
-                    val preFilter = lights.size
                     val lights = lights.filter { it.first.sections.any { pos -> manager.isSectionVisible(pos) } }
-                    Vibrancy.LOGGER.info("DIAG render: preFilter=$preFilter visible=${lights.size}")
                     val atlas = NeoAtlas.blocks
 
                     temp.bind().use { fbo ->

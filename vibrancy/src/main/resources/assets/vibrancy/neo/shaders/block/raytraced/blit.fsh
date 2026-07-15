@@ -88,9 +88,13 @@ float castShadow(Ray ray) {
 
     vec3 tMax = (nextPos - ray.pos) * ray.invDir;
     vec3 tDelta = abs(ray.invDir);
+    float t = 0.0;
 
-    while (isInGrid(voxel, GridMin, gridMax)) {
-        if (voxel != lightVoxel) {
+    // Traverse the full path from the face to the light.
+    // Only test faces when inside the shadow grid — this lets faces far from the
+    // torch still receive shadows from occluders that are close to the torch.
+    while (t <= ray.len) {
+        if (voxel != lightVoxel && all(greaterThanEqual(voxel, GridMin)) && all(lessThan(voxel, gridMax))) {
             ivec3 local = voxel - GridMin;
             int cellIdx = local.z * GridSize.x * GridSize.y + local.y * GridSize.x + local.x;
             uint cellRange = texelFetch(GridBuffer, 8 + cellIdx).r;
@@ -114,11 +118,11 @@ float castShadow(Ray ray) {
 
         ivec3 oldVoxel = voxel;
         if (tCand.x < tCand.y) {
-            if (tCand.x < tCand.z) { voxel.x += step.x; tMax.x += tDelta.x; }
-            else                    { voxel.z += step.z; tMax.z += tDelta.z; }
+            if (tCand.x < tCand.z) { t = tCand.x; voxel.x += step.x; tMax.x += tDelta.x; }
+            else                    { t = tCand.z; voxel.z += step.z; tMax.z += tDelta.z; }
         } else {
-            if (tCand.y < tCand.z) { voxel.y += step.y; tMax.y += tDelta.y; }
-            else                   { voxel.z += step.z; tMax.z += tDelta.z; }
+            if (tCand.y < tCand.z) { t = tCand.y; voxel.y += step.y; tMax.y += tDelta.y; }
+            else                   { t = tCand.z; voxel.z += step.z; tMax.z += tDelta.z; }
         }
         if (oldVoxel == voxel) break;
     }
