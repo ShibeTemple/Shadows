@@ -75,7 +75,7 @@ ComplexQuad fetchComplexQuad(int j) {
     return q;
 }
 
-float castShadow(Ray ray) {
+vec3 castShadow(Ray ray) {
     ivec3 gridMax = GridMin + GridSize;
     ivec3 voxel = ivec3(floor(ray.pos));
     ivec3 step = ivec3(sign(ray.dir));
@@ -90,9 +90,12 @@ float castShadow(Ray ray) {
     vec3 tDelta = abs(ray.invDir);
     float t = 0.0;
 
+    vec3 tint = vec3(0.0);
+    float denom = 0.0;
+
     // Traverse the full path from the face to the light.
-    // Only test faces when inside the shadow grid — this lets faces far from the
-    // torch still receive shadows from occluders that are close to the torch.
+    // Only test faces when inside the shadow grid — lets faces far from the
+    // torch still receive shadows from occluders close to the torch.
     while (t <= ray.len) {
         if (voxel != lightVoxel && all(greaterThanEqual(voxel, GridMin)) && all(lessThan(voxel, gridMax))) {
             ivec3 local = voxel - GridMin;
@@ -106,7 +109,12 @@ float castShadow(Ray ray) {
                 vec4 outColor;
                 ComplexQuad quad = fetchComplexQuad(int(j));
                 if (sampleComplexQuad(false, Sampler0, Sampler0Size, ray.pos, ray.dir, ray.len, 1e-3, quad, dist, outColor)) {
-                    if (outColor.a > 0.1) return 0.0;
+                    if (outColor.a == 1.0) {
+                        return vec3(0.0);
+                    } else if (outColor.a != 0.0) {
+                        tint += outColor.rgb * outColor.a;
+                        denom += outColor.a;
+                    }
                 }
             }
         }
@@ -127,10 +135,12 @@ float castShadow(Ray ray) {
         if (oldVoxel == voxel) break;
     }
 
-    return 1.0;
+    if (denom > 0.0) {
+        return tint / denom;
+    }
+    return vec3(1.0);
 }
 
 void main() {
-    float s = castShadow(ray(vertexPos));
-    fragColor = vec3(s);
+    fragColor = castShadow(ray(vertexPos));
 }
