@@ -48,3 +48,9 @@ crash-reports/
 
 # Compiled
 *.class
+
+# Backup / reference copies
+original 1.21 vibrancy/
+
+# Stale unpacked sources
+/net/

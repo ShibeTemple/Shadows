@@ -99,7 +99,7 @@ object VibrancyConfig {
     var rayLightsMaxRendered: Int = if (isPotato) 200 else 400
     @JvmField
     var rayLightBrightness: Float = 1f
-    var rayLightShadowRadius: Int = 16
+    var rayLightShadowRadius: Int = 6
         set(value) {
             field = value
 
@@ -384,7 +384,7 @@ object VibrancyConfig {
 
                     .option(Option.createBuilder<Int>()
                         .name(Component.translatable("config.vibrancy.blockLights.raytraced.shadowRadius"))
-                        .binding(16, VibrancyConfig::rayLightShadowRadius)
+                        .binding(6, VibrancyConfig::rayLightShadowRadius)
                         .description(OptionDescription.of(
                             Component.translatable("config.vibrancy.blockLights.raytraced.brightness.tooltip")
                         ))
