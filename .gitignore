@@ -1,0 +1,50 @@
+# Gradle
+build/
+.gradle/
+!gradle/wrapper/gradle-wrapper.jar
+gradle-app.setting
+!settings.gradle.kts
+!build.gradle.kts
+!build.fabric.gradle.kts
+!build.neoforge.gradle.kts
+
+# Kotlin
+.kotlin/
+
+# IntelliJ IDEA
+.idea/
+*.iml
+*.ipr
+*.iws
+out/
+
+# Eclipse
+bin/
+*.launch
+.settings/
+.metadata
+.classpath
+.project
+
+# VS Code
+.vscode/
+
+# OS
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Environment
+.env
+
+# Stonecutter
+run/
+runs/
+
+# Logs
+logs/
+*.log
+crash-reports/
+
+# Compiled
+*.class
