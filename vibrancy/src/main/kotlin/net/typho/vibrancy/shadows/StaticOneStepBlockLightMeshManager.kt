@@ -121,7 +121,12 @@ open class StaticOneStepBlockLightMeshManager(
         val shadowBounds = shadowBounds(this)
         val faces = arrayListOf<Pair<IVec3<Int>, List<LightFace>>>()
 
+        // attenuateNoCusp returns 0 for distance >= radius; cube corners beyond
+        // the sphere contribute nothing to the rendered output — skip them.
+        val lightRadiusSq = lightBounds.max.x.let { r -> r * r }
+
         lightBounds.iterator().forEach { pos ->
+            if (pos.x * pos.x + pos.y * pos.y + pos.z * pos.z >= lightRadiusSq) return@forEach
             val ax = pos.x + this.pos.x
             val ay = pos.y + this.pos.y
             val az = pos.z + this.pos.z

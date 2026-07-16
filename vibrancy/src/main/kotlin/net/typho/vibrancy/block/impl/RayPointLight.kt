@@ -169,10 +169,8 @@ open class RayPointLight(
     val mesh = StaticOneStepBlockLightMeshManager(
         pos,
         {
-            NeoRect3i(
-                NeoVec3i(-radius.toInt(), -radius.toInt(), -radius.toInt()),
-                NeoVec3i(radius.toInt(), radius.toInt(), radius.toInt())
-            )
+            val r = radius.toInt().coerceAtMost(VibrancyConfig.rayLightMeshRadius)
+            NeoRect3i(NeoVec3i(-r, -r, -r), NeoVec3i(r, r, r))
         },
         {
             val r = ceil(radius.coerceAtMost(VibrancyConfig.rayLightShadowRadius.toFloat())).toInt()

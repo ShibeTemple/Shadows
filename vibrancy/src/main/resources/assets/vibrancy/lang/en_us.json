@@ -57,6 +57,8 @@
   "config.vibrancy.blockLights.raytraced.shadowRadius.tooltip": "The maximum radius (in blocks) from each block light where blocks will cast shadows.",
   "config.vibrancy.blockLights.raytraced.maxHighQuality": "Max High Quality",
   "config.vibrancy.blockLights.raytraced.maxHighQuality.tooltip": "The maximum number of lights that use composite rendering, fixing the side of grass blocks not looking right.",
+  "config.vibrancy.blockLights.raytraced.meshRadius": "Mesh Radius",
+  "config.vibrancy.blockLights.raytraced.meshRadius.tooltip": "Maximum radius (in blocks) of each light's render mesh. Reducing this shrinks how many block faces are drawn per light — the biggest performance lever when many lights are visible. The outer ring contributes less than 2% light intensity, so values of 8-12 are nearly indistinguishable visually.",
   "config.vibrancy.blockLights.raytraced.frustumCulling": "Frustum Culling",
   "config.vibrancy.blockLights.raytraced.frustumCulling.tooltip": "Skips rendering lights that are outside the camera's field of view. Improves performance when many lights are behind the player with no visual quality loss. Shadows are still updated off-screen so they appear instantly when you look back.",
 

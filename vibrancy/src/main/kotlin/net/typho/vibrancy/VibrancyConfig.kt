@@ -112,6 +112,11 @@ object VibrancyConfig {
         }
     @JvmField
     var rayLightMaxHighQuality: Int = 10
+    var rayLightMeshRadius: Int = 12
+        set(value) {
+            field = value
+            Vibrancy.lightManager.reload()
+        }
 
     var subtleLightsEnabled = true
         set(value) {
@@ -196,6 +201,7 @@ object VibrancyConfig {
                 .name("brightness").value(rayLightBrightness)
                 .name("shadowRadius").value(rayLightShadowRadius)
                 .name("maxHighQuality").value(rayLightMaxHighQuality)
+                .name("meshRadius").value(rayLightMeshRadius)
                 .name("frustumCulling").value(frustumCulling)
 
                 .endObject()
@@ -261,6 +267,7 @@ object VibrancyConfig {
                         raytraced.getAsJsonPrimitive("brightness")?.let { rayLightBrightness = it.asFloat }
                         raytraced.getAsJsonPrimitive("shadowRadius")?.let { rayLightShadowRadius = it.asInt }
                         raytraced.getAsJsonPrimitive("maxHighQuality")?.let { rayLightMaxHighQuality = it.asInt }
+                        raytraced.getAsJsonPrimitive("meshRadius")?.let { rayLightMeshRadius = it.asInt }
                         raytraced.getAsJsonPrimitive("frustumCulling")?.let { frustumCulling = it.asBoolean }
                     }
 
@@ -423,6 +430,19 @@ object VibrancyConfig {
                             IntegerSliderControllerBuilder.create(opt)
                                 .range(0, 30)
                                 .step(5)
+                        }
+                        .build())
+
+                    .option(Option.createBuilder<Int>()
+                        .name(Component.translatable("config.vibrancy.blockLights.raytraced.meshRadius"))
+                        .binding(12, VibrancyConfig::rayLightMeshRadius)
+                        .description(OptionDescription.of(
+                            Component.translatable("config.vibrancy.blockLights.raytraced.meshRadius.tooltip")
+                        ))
+                        .controller { opt ->
+                            IntegerSliderControllerBuilder.create(opt)
+                                .range(4, 16)
+                                .step(1)
                         }
                         .build())
 
