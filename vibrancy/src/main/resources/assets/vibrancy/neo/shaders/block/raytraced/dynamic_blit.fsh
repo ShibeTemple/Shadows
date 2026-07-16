@@ -12,11 +12,7 @@ struct BVH {
 
 uniform usamplerBuffer ShadowQuadBuffer;
 uniform usamplerBuffer BVHBuffer;
-uniform usamplerBuffer TextureInfoBuffer;
 uniform int BVHCount;
-
-uniform sampler2D Samplers[8];
-uniform ivec2 SamplersSizes[8];
 
 uniform vec3 LightPos;
 uniform vec3 LightColor;
@@ -79,35 +75,18 @@ Quad fetchQuad(int j) {
 
 void main() {
     Ray ray = ray(vertexPos);
-
     fragColor = vec3(1);
-    vec3 tint = vec3(0);
-    float denom = 0;
-
     for (int i = 0; i < BVHCount; i++) {
         BVH bvh = fetchBVH(i);
-
         if (raycastAABB(ray.pos, ray.invDir, ray.len, AABB(bvh.min, bvh.max))) {
             for (uint j = bvh.start; j < bvh.end; j++) {
-                float dist;
-                vec4 outColor;
                 Quad quad = fetchQuad(int(j));
-                uint texture = texelFetch(TextureInfoBuffer, int(j)).r;
-
-                if (sampleQuad(false, Samplers[texture], SamplersSizes[texture], ray.pos, ray.dir, ray.len, 1e-3, quad, dist, outColor)) {
-                    if (outColor.a == 1) {
-                        fragColor = vec3(0);
-                        break;
-                    } else if (outColor.a != 0) {
-                        tint += outColor.rgb * outColor.a;
-                        denom += outColor.a;
-                    }
+                vec2 uv; float dist;
+                if (raycastQuad(false, ray.pos, ray.dir, ray.len, 1e-3, quad.vert1, quad.vert2, quad.vert3, quad.vert4, uv, dist)) {
+                    fragColor = vec3(0);
+                    return;
                 }
             }
         }
-    }
-
-    if (denom > 0) {
-        fragColor *= tint / denom;
     }
 }

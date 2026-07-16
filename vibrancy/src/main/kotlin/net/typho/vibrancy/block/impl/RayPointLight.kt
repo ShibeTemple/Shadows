@@ -280,13 +280,15 @@ open class RayPointLight(
                 data class Node(
                     val buffers: MutableMap<NeoIdentifier, Pair<DynamicLightFace.Consumer, MutableList<DynamicLightFace>>> = hashMapOf(),
                     val bufferSource: NeoMultiBufferSource = NeoMultiBufferSource { settings: NeoRenderSettings ->
-                        val texture = settings.drawState.shader.textures.getOrNull(0)?.location ?: return@NeoMultiBufferSource EmptyVertexConsumer
+                        val texture = settings.drawState.shader.textures.getOrNull(0)?.location
+                        texture ?: return@NeoMultiBufferSource EmptyVertexConsumer
 
                         if (Vibrancy.entityShadowTextureBlacklist.contains(texture)) {
                             return@NeoMultiBufferSource EmptyVertexConsumer
                         }
 
-                        if (GlTexture2D[texture] == null) {
+                        val glTex = GlTexture2D[texture]
+                        if (glTex == null) {
                             return@NeoMultiBufferSource EmptyVertexConsumer
                         }
 
@@ -351,7 +353,8 @@ open class RayPointLight(
                 Vibrancy.disableFlywheelInstancing = true
                 if (VibrancyConfig.entityShadowsEnabled) {
                     profiler.push("entityShadows")
-                    for (entity in level.getEntities(null, AABB.ofSize(Vec3(absolutePos.toJOML()), radius.toDouble() * 2, radius.toDouble() * 2, radius.toDouble() * 2))) {
+                    val nearby = level.getEntities(null, AABB.ofSize(Vec3(absolutePos.toJOML()), radius.toDouble() * 2, radius.toDouble() * 2, radius.toDouble() * 2))
+                    for (entity in nearby) {
                         if (boundingBox.contains(NeoVec3i(entity.blockPosition()))) {
                             val node = Node()
                             debugOut("entityShadows", 1)
@@ -472,16 +475,12 @@ open class RayPointLight(
                                 dynamicBuffer.tboTexId,
                                 null,
                                 {
-                                    setTextureArray(0, "Samplers", *textures.map { GlTextureBinding.FromInstance(it, GlTextureTarget.TEXTURE_2D) }.toTypedArray())
                                     glActiveTexture(GL_TEXTURE0 + 8)
                                     glBindTexture(GL_TEXTURE_BUFFER, dynamicBuffer.tboTexId)
                                     setUniform("ShadowQuadBuffer") { set(8) }
                                     glActiveTexture(GL_TEXTURE0 + 9)
                                     glBindTexture(GL_TEXTURE_BUFFER, dynamicBVHTexId)
                                     setUniform("BVHBuffer") { set(9) }
-                                    glActiveTexture(GL_TEXTURE0 + 10)
-                                    glBindTexture(GL_TEXTURE_BUFFER, dynamicTextureInfoTexId)
-                                    setUniform("TextureInfoBuffer") { set(10) }
                                     setUniform("BVHCount") { set(bvhCount) }
                                 },
                                 Vibrancy.id("block/raytraced/dynamic_blit")

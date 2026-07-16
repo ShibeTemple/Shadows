@@ -1,16 +1,21 @@
 package net.typho.big_shot_lib.impl.client.rendering.util
 
 import com.mojang.blaze3d.vertex.VertexConsumer
+import net.caffeinemc.mods.sodium.api.vertex.attributes.CommonVertexAttribute
+import net.caffeinemc.mods.sodium.api.vertex.buffer.VertexBufferWriter
+import net.caffeinemc.mods.sodium.api.vertex.format.VertexFormatDescription
 import net.typho.big_shot_lib.api.client.rendering.util.NeoVertexConsumer
 import net.typho.big_shot_lib.api.util.NeoColor
 import com.mojang.blaze3d.vertex.PoseStack
 import org.joml.Matrix4f
 import org.joml.Matrix4fc
+import org.lwjgl.system.MemoryStack
+import org.lwjgl.system.MemoryUtil
 
 class VertexConsumerWrapper(
     @JvmField
     val inner: NeoVertexConsumer
-) : VertexConsumer {
+) : VertexConsumer, VertexBufferWriter {
     //? if >=1.21.11 {
     /*override fun setLineWidth(f: Float): VertexConsumer {
         // TODO implement once all support pre-1.21.11 is dropped
@@ -179,4 +184,61 @@ class VertexConsumerWrapper(
         defaultColor = null
     }
     *///? }
+
+    override fun push(stack: MemoryStack, ptr: Long, count: Int, format: VertexFormatDescription) {
+        val stride = format.stride().toLong()
+
+        val hasPos     = format.containsElement(CommonVertexAttribute.POSITION)
+        val hasColor   = format.containsElement(CommonVertexAttribute.COLOR)
+        val hasTex     = format.containsElement(CommonVertexAttribute.TEXTURE)
+        val hasOverlay = format.containsElement(CommonVertexAttribute.OVERLAY)
+        val hasLight   = format.containsElement(CommonVertexAttribute.LIGHT)
+        val hasNormal  = format.containsElement(CommonVertexAttribute.NORMAL)
+
+        val posOff     = if (hasPos)     format.getElementOffset(CommonVertexAttribute.POSITION).toLong() else 0L
+        val colorOff   = if (hasColor)   format.getElementOffset(CommonVertexAttribute.COLOR).toLong()    else 0L
+        val texOff     = if (hasTex)     format.getElementOffset(CommonVertexAttribute.TEXTURE).toLong()  else 0L
+        val overlayOff = if (hasOverlay) format.getElementOffset(CommonVertexAttribute.OVERLAY).toLong()  else 0L
+        val lightOff   = if (hasLight)   format.getElementOffset(CommonVertexAttribute.LIGHT).toLong()    else 0L
+        val normalOff  = if (hasNormal)  format.getElementOffset(CommonVertexAttribute.NORMAL).toLong()   else 0L
+
+        for (i in 0 until count) {
+            val base = ptr + i * stride
+
+            if (hasPos) {
+                inner.vertex(
+                    MemoryUtil.memGetFloat(base + posOff),
+                    MemoryUtil.memGetFloat(base + posOff + 4),
+                    MemoryUtil.memGetFloat(base + posOff + 8)
+                )
+            }
+            if (hasColor) {
+                val c = MemoryUtil.memGetInt(base + colorOff)
+                inner.color(c and 0xFF, (c ushr 8) and 0xFF, (c ushr 16) and 0xFF, (c ushr 24) and 0xFF)
+            }
+            if (hasTex) {
+                inner.textureUV(
+                    MemoryUtil.memGetFloat(base + texOff),
+                    MemoryUtil.memGetFloat(base + texOff + 4)
+                )
+            }
+            if (hasOverlay) {
+                val o = MemoryUtil.memGetInt(base + overlayOff)
+                inner.overlayUV(o and 0xFFFF, (o ushr 16) and 0xFFFF)
+            }
+            if (hasLight) {
+                val l = MemoryUtil.memGetInt(base + lightOff)
+                inner.lightUV(l and 0xFFFF, (l ushr 16) and 0xFFFF)
+            }
+            if (hasNormal) {
+                val n = MemoryUtil.memGetInt(base + normalOff)
+                inner.normal(
+                    (n and 0xFF).toByte().toFloat() / 127f,
+                    ((n ushr 8) and 0xFF).toByte().toFloat() / 127f,
+                    ((n ushr 16) and 0xFF).toByte().toFloat() / 127f
+                )
+            }
+            inner.endVertex()
+        }
+    }
 }
