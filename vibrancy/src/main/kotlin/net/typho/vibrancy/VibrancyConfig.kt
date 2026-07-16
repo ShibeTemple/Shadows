@@ -68,7 +68,7 @@ object VibrancyConfig {
             field = value
         }
     @JvmField
-    var limitLightBrightness = false
+    var limitLightBrightness = true
     @JvmField
     var flickerStrength = 1f
 
@@ -86,7 +86,10 @@ object VibrancyConfig {
     @JvmField
     var entityShadowDistance = if (isPotato) 3 else 4
     @JvmField
-    var entityShadowMaxBlockLights = if (isPotato) 0 else 10
+    var entityShadowMaxBlockLights = if (isPotato) 3 else 10
+
+    @JvmField
+    var frustumCulling = true
 
     var rayLightsEnabled = true
         set(value) {
@@ -190,6 +193,7 @@ object VibrancyConfig {
                 .name("brightness").value(rayLightBrightness)
                 .name("shadowRadius").value(rayLightShadowRadius)
                 .name("maxHighQuality").value(rayLightMaxHighQuality)
+                .name("frustumCulling").value(frustumCulling)
 
                 .endObject()
 
@@ -253,6 +257,7 @@ object VibrancyConfig {
                         raytraced.getAsJsonPrimitive("brightness")?.let { rayLightBrightness = it.asFloat }
                         raytraced.getAsJsonPrimitive("shadowRadius")?.let { rayLightShadowRadius = it.asInt }
                         raytraced.getAsJsonPrimitive("maxHighQuality")?.let { rayLightMaxHighQuality = it.asInt }
+                        raytraced.getAsJsonPrimitive("frustumCulling")?.let { frustumCulling = it.asBoolean }
                     }
 
                     blockLights.getAsJsonObject("subtle")?.let { subtle ->
@@ -296,6 +301,9 @@ object VibrancyConfig {
 
                 .option(Option.createBuilder<Boolean>()
                     .name(Component.translatable("config.vibrancy.general.modEnabled"))
+                    .description(OptionDescription.of(
+                        Component.translatable("config.vibrancy.general.modEnabled.tooltip")
+                    ))
                     .binding(true, VibrancyConfig::modEnabled)
                     .controller(TickBoxControllerBuilder::create)
                     .build())
@@ -312,6 +320,9 @@ object VibrancyConfig {
 
                 .option(Option.createBuilder<Int>()
                     .name(Component.translatable("config.vibrancy.general.asyncThreads"))
+                    .description(OptionDescription.of(
+                        Component.translatable("config.vibrancy.general.asyncThreads.tooltip")
+                    ))
                     .binding(if (isPotato) 4 else 8, VibrancyConfig::asyncThreads)
                     .controller { opt ->
                         IntegerSliderControllerBuilder.create(opt)
@@ -326,7 +337,7 @@ object VibrancyConfig {
                         Component.translatable("config.vibrancy.general.limitLightBrightness.tooltip0"),
                         Component.translatable("config.vibrancy.general.limitLightBrightness.tooltip1")
                     ))
-                    .binding(false, VibrancyConfig::limitLightBrightness)
+                    .binding(true, VibrancyConfig::limitLightBrightness)
                     .controller(TickBoxControllerBuilder::create)
                     .build())
 
@@ -334,7 +345,7 @@ object VibrancyConfig {
                     .name(Component.translatable("config.vibrancy.general.flickerStrength"))
                     .binding(1f, VibrancyConfig::flickerStrength)
                     .description(OptionDescription.of(
-                        Component.translatable("config.vibrancy.blockLights.general.flickerStrength.tooltip")
+                        Component.translatable("config.vibrancy.general.flickerStrength.tooltip")
                     ))
                     .controller { opt ->
                         FloatSliderControllerBuilder.create(opt)
@@ -352,6 +363,9 @@ object VibrancyConfig {
 
                     .option(Option.createBuilder<Boolean>()
                         .name(Component.translatable("config.vibrancy.blockLights.raytraced.enabled"))
+                        .description(OptionDescription.of(
+                            Component.translatable("config.vibrancy.blockLights.raytraced.enabled.tooltip")
+                        ))
                         .binding(true, VibrancyConfig::rayLightsEnabled)
                         .controller(TickBoxControllerBuilder::create)
                         .build())
@@ -386,7 +400,7 @@ object VibrancyConfig {
                         .name(Component.translatable("config.vibrancy.blockLights.raytraced.shadowRadius"))
                         .binding(6, VibrancyConfig::rayLightShadowRadius)
                         .description(OptionDescription.of(
-                            Component.translatable("config.vibrancy.blockLights.raytraced.brightness.tooltip")
+                            Component.translatable("config.vibrancy.blockLights.raytraced.shadowRadius.tooltip")
                         ))
                         .controller { opt ->
                             IntegerSliderControllerBuilder.create(opt)
@@ -407,6 +421,15 @@ object VibrancyConfig {
                                 .step(5)
                         }
                         .build())
+
+                    .option(Option.createBuilder<Boolean>()
+                        .name(Component.translatable("config.vibrancy.blockLights.raytraced.frustumCulling"))
+                        .description(OptionDescription.of(
+                            Component.translatable("config.vibrancy.blockLights.raytraced.frustumCulling.tooltip")
+                        ))
+                        .binding(true, VibrancyConfig::frustumCulling)
+                        .controller(TickBoxControllerBuilder::create)
+                        .build())
                     .build())
 
                 .group(OptionGroup.createBuilder()
@@ -420,6 +443,9 @@ object VibrancyConfig {
 
                     .option(Option.createBuilder<Int>()
                         .name(Component.translatable("config.vibrancy.blockLights.subtle.renderDistance"))
+                        .description(OptionDescription.of(
+                            Component.translatable("config.vibrancy.blockLights.subtle.renderDistance.tooltip")
+                        ))
                         .binding(6, VibrancyConfig::subtleLightsRenderDistance)
                         .controller { opt ->
                             IntegerSliderControllerBuilder.create(opt)
@@ -484,6 +510,9 @@ object VibrancyConfig {
 
                 .option(Option.createBuilder<Float>()
                     .name(Component.translatable("config.vibrancy.skyLights.brightness"))
+                    .description(OptionDescription.of(
+                        Component.translatable("config.vibrancy.skyLights.brightness.tooltip")
+                    ))
                     .binding(1f, VibrancyConfig::skyLightBrightness)
                     .controller { opt ->
                         FloatSliderControllerBuilder.create(opt)
@@ -508,6 +537,9 @@ object VibrancyConfig {
 
                 .option(Option.createBuilder<Float>()
                     .name(Component.translatable("config.vibrancy.skyLights.shadow_map_power"))
+                    .description(OptionDescription.of(
+                        Component.translatable("config.vibrancy.skyLights.shadow_map_power.tooltip")
+                    ))
                     .binding(8f, VibrancyConfig::skyLightShadowMapPower)
                     .controller { opt ->
                         FloatSliderControllerBuilder.create(opt)
@@ -518,6 +550,9 @@ object VibrancyConfig {
 
                 .option(Option.createBuilder<Boolean>()
                     .name(Component.translatable("config.vibrancy.skyLights.translucent_enabled"))
+                    .description(OptionDescription.of(
+                        Component.translatable("config.vibrancy.skyLights.translucent_enabled.tooltip")
+                    ))
                     .binding(true, VibrancyConfig::skyLightTranslucentEnabled)
                     .controller(TickBoxControllerBuilder::create)
                     .build())
@@ -529,12 +564,18 @@ object VibrancyConfig {
 
                 .option(Option.createBuilder<Boolean>()
                     .name(Component.translatable("config.vibrancy.specularReflections.enabled"))
+                    .description(OptionDescription.of(
+                        Component.translatable("config.vibrancy.specularReflections.enabled.tooltip")
+                    ))
                     .binding(true, VibrancyConfig::reflectionsEnabled)
                     .controller(TickBoxControllerBuilder::create)
                     .build())
 
                 .option(Option.createBuilder<Float>()
                     .name(Component.translatable("config.vibrancy.specularReflections.strength"))
+                    .description(OptionDescription.of(
+                        Component.translatable("config.vibrancy.specularReflections.strength.tooltip")
+                    ))
                     .binding(3.5f, VibrancyConfig::reflectionStrength)
                     .controller { opt ->
                         FloatSliderControllerBuilder.create(opt)
@@ -545,6 +586,9 @@ object VibrancyConfig {
 
                 .option(Option.createBuilder<Float>()
                     .name(Component.translatable("config.vibrancy.specularReflections.exponent"))
+                    .description(OptionDescription.of(
+                        Component.translatable("config.vibrancy.specularReflections.exponent.tooltip")
+                    ))
                     .binding(3f, VibrancyConfig::reflectionExponent)
                     .controller { opt ->
                         FloatSliderControllerBuilder.create(opt)
@@ -559,19 +603,28 @@ object VibrancyConfig {
 
                 .option(Option.createBuilder<Boolean>()
                     .name(Component.translatable("config.vibrancy.entityShadows.enabled"))
+                    .description(OptionDescription.of(
+                        Component.translatable("config.vibrancy.entityShadows.enabled.tooltip")
+                    ))
                     .binding(true, VibrancyConfig::entityShadowsEnabled)
                     .controller(TickBoxControllerBuilder::create)
                     .build())
 
                 .option(Option.createBuilder<Boolean>()
                     .name(Component.translatable("config.vibrancy.entityShadows.blockEntityShadows"))
+                    .description(OptionDescription.of(
+                        Component.translatable("config.vibrancy.entityShadows.blockEntityShadows.tooltip")
+                    ))
                     .binding(!isPotato, VibrancyConfig::blockEntityShadows)
                     .controller(TickBoxControllerBuilder::create)
                     .build())
 
                 .option(Option.createBuilder<Int>()
                     .name(Component.translatable("config.vibrancy.entityShadows.distance"))
-                    .binding(if (isPotato) 2 else 4, VibrancyConfig::entityShadowDistance)
+                    .description(OptionDescription.of(
+                        Component.translatable("config.vibrancy.entityShadows.distance.tooltip")
+                    ))
+                    .binding(if (isPotato) 3 else 4, VibrancyConfig::entityShadowDistance)
                     .controller { opt ->
                         IntegerSliderControllerBuilder.create(opt)
                             .range(1, 16)
@@ -581,7 +634,10 @@ object VibrancyConfig {
 
                 .option(Option.createBuilder<Int>()
                     .name(Component.translatable("config.vibrancy.entityShadows.maxLights"))
-                    .binding(if (isPotato) 0 else 10, VibrancyConfig::entityShadowMaxBlockLights)
+                    .description(OptionDescription.of(
+                        Component.translatable("config.vibrancy.entityShadows.maxLights.tooltip")
+                    ))
+                    .binding(if (isPotato) 3 else 10, VibrancyConfig::entityShadowMaxBlockLights)
                     .controller { opt ->
                         IntegerSliderControllerBuilder.create(opt)
                             .range(0, 100)

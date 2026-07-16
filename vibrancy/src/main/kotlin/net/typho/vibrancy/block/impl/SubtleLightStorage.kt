@@ -193,8 +193,6 @@ class SubtleLightStorage : SectionedBlockLightStorage<SubtleLightInfo, SubtleLig
                     }
                 }
 
-                println(chunk.x++)
-
                 fun impl(isCancelled: () -> Boolean, profiler: ProfilerFiller?): Pair<AutoCloseable, () -> Unit> {
                     synchronized(chunk.map) {
                         profiler?.push("fold")

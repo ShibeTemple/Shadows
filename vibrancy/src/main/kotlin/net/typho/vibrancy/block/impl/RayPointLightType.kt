@@ -45,11 +45,6 @@ object RayPointLightType : BlockLightType<RayPointLightInfo, HashMapBlockLightSt
             synchronized(lights.map) {
                 profiler.push("cull")
                 val lights = lights.map.values
-                    /*
-                    .filter { light ->
-                        manager.testFrustum(light.pos, data, light.boundingBox) && light.sections.any { manager.isSectionVisible(it) }
-                    }
-                     */
                     .map { light -> light to manager.getSortingOrder(data, light.pos) }
                     .sortedBy { it.second }
                     .take(VibrancyConfig.rayLightsMaxRendered)
@@ -84,7 +79,10 @@ object RayPointLightType : BlockLightType<RayPointLightInfo, HashMapBlockLightSt
                     profiler.pop()
 
                     val highQualityDistance = 2f * 2f * 16f * 16f
-                    val lights = lights.filter { it.first.sections.any { pos -> manager.isSectionVisible(pos) } }
+                    val lights = lights.filter {
+                        it.first.sections.any { pos -> manager.isSectionVisible(pos) } &&
+                        (!VibrancyConfig.frustumCulling || manager.testFrustum(it.first.pos, data, it.first.boundingBox))
+                    }
                     val atlas = NeoAtlas.blocks
 
                     temp.bind().use { fbo ->
