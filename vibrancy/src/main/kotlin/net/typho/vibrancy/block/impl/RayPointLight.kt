@@ -158,6 +158,8 @@ open class RayPointLight(
         private set
     @JvmField
     protected var dynamicCleared = true
+    private var dynamicUpdateTick = 0
+    private var cachedDynamicFaceCount = 0
 
     @JvmField
     val staticTexture = LightTexture()
@@ -266,7 +268,12 @@ open class RayPointLight(
         profiler.pop()
 
         if (dynamicShadows) {
-            profiler.push("dynamicShadows")
+            val shouldUpdate = dynamicUpdateTick % VibrancyConfig.entityShadowUpdateInterval == 0
+            dynamicUpdateTick++
+
+            if (shouldUpdate) {
+                cachedDynamicFaceCount = 0
+                profiler.push("dynamicShadows")
             manager.getLevel()?.let { level ->
                 profiler.push("collect")
 
@@ -449,7 +456,7 @@ open class RayPointLight(
                             val quads = nodes.flatMap { it.first.getQuads(textures) }
                             val textures = textures.map { GlTexture2D[it]!! }
 
-                            debugOut("numDynamicShadowFaces", quads.size)
+                            cachedDynamicFaceCount += quads.size
 
                             val texBuffer = NeoBuffer.Native(quads.size * 4L)
 
@@ -490,9 +497,12 @@ open class RayPointLight(
                 }
                 profiler.pop()
 
-                debugOut("lightsWithEntityShadows", 1)
             }
             profiler.pop()
+            } // end if (shouldUpdate)
+
+            debugOut("lightsWithEntityShadows", 1)
+            debugOut("numDynamicShadowFaces", cachedDynamicFaceCount)
         } else {
             if (!dynamicCleared) {
                 dynamicTexture.clear()

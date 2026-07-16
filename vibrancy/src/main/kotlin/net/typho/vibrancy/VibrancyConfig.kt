@@ -87,6 +87,8 @@ object VibrancyConfig {
     var entityShadowDistance = if (isPotato) 3 else 4
     @JvmField
     var entityShadowMaxBlockLights = if (isPotato) 3 else 10
+    @JvmField
+    var entityShadowUpdateInterval = if (isPotato) 3 else 2
 
     @JvmField
     var frustumCulling = true
@@ -181,6 +183,7 @@ object VibrancyConfig {
                 .name("blockEntities").value(blockEntityShadows)
                 .name("distance").value(entityShadowDistance)
                 .name("maxLights").value(entityShadowMaxBlockLights)
+                .name("updateInterval").value(entityShadowUpdateInterval)
 
                 .endObject()
 
@@ -248,6 +251,7 @@ object VibrancyConfig {
                     entityShadows.getAsJsonPrimitive("blockEntities")?.let { blockEntityShadows = it.asBoolean }
                     entityShadows.getAsJsonPrimitive("distance")?.let { entityShadowDistance = it.asInt }
                     entityShadows.getAsJsonPrimitive("maxLights")?.let { entityShadowMaxBlockLights = it.asInt }
+                    entityShadows.getAsJsonPrimitive("updateInterval")?.let { entityShadowUpdateInterval = it.asInt }
                 }
 
                 json.getAsJsonObject("blockLights")?.let { blockLights ->
@@ -642,6 +646,19 @@ object VibrancyConfig {
                         IntegerSliderControllerBuilder.create(opt)
                             .range(0, 100)
                             .step(5)
+                    }
+                    .build())
+
+                .option(Option.createBuilder<Int>()
+                    .name(Component.translatable("config.vibrancy.entityShadows.updateInterval"))
+                    .description(OptionDescription.of(
+                        Component.translatable("config.vibrancy.entityShadows.updateInterval.tooltip")
+                    ))
+                    .binding(if (isPotato) 3 else 2, VibrancyConfig::entityShadowUpdateInterval)
+                    .controller { opt ->
+                        IntegerSliderControllerBuilder.create(opt)
+                            .range(1, 6)
+                            .step(1)
                     }
                     .build())
                 .build())

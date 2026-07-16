@@ -33,6 +33,8 @@
   "config.vibrancy.entityShadows.distance.tooltip": "The distance from camera in chunks where lights can have entity shadows. Reducing this improves performance in areas with many lights.",
   "config.vibrancy.entityShadows.maxLights": "Max Lights",
   "config.vibrancy.entityShadows.maxLights.tooltip": "The maximum number of lights that can have entity shadows, prioritising lights closest to the camera. Set to 0 to disable while keeping the setting easily re-enabled.",
+  "config.vibrancy.entityShadows.updateInterval": "Update Interval",
+  "config.vibrancy.entityShadows.updateInterval.tooltip": "How many frames to skip between entity shadow recalculations. 1 = every frame (most accurate, most expensive), 2 = every other frame, higher values save more CPU/GPU at the cost of shadow responsiveness.",
 
   "config.vibrancy.inventoryLights": "Inventory Lights",
 
