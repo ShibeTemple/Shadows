@@ -77,7 +77,23 @@ ComplexQuad fetchComplexQuad(int j) {
 
 vec3 castShadow(Ray ray) {
     ivec3 gridMax = GridMin + GridSize;
-    ivec3 voxel = ivec3(floor(ray.pos));
+
+    // Intersect the ray with the shadow grid AABB.
+    // Faces outside the grid can skip straight to the grid boundary, avoiding
+    // empty DDA iterations (significant when shadowRadius < light radius).
+    vec3 t0g = (vec3(GridMin) - ray.pos) * ray.invDir;
+    vec3 t1g = (vec3(gridMax) - ray.pos) * ray.invDir;
+    float tEnter = max(max(min(t0g.x, t1g.x), min(t0g.y, t1g.y)), min(t0g.z, t1g.z));
+    float tExit  = min(min(max(t0g.x, t1g.x), max(t0g.y, t1g.y)), max(t0g.z, t1g.z));
+
+    if (tExit < 0.0 || tEnter > tExit || tEnter >= ray.len) {
+        return vec3(1.0);  // Ray misses the shadow grid entirely.
+    }
+
+    float tStart = max(0.0, tEnter);
+    vec3 startPos = ray.pos + tStart * ray.dir;
+
+    ivec3 voxel = ivec3(floor(startPos));
     ivec3 step = ivec3(sign(ray.dir));
     ivec3 lightVoxel = ivec3(floor(LightPos));
 
@@ -86,16 +102,13 @@ vec3 castShadow(Ray ray) {
     nextPos.y = ray.dir.y > 0 ? float(voxel.y + 1) : float(voxel.y);
     nextPos.z = ray.dir.z > 0 ? float(voxel.z + 1) : float(voxel.z);
 
-    vec3 tMax = (nextPos - ray.pos) * ray.invDir;
+    vec3 tMax = tStart + (nextPos - startPos) * ray.invDir;
     vec3 tDelta = abs(ray.invDir);
-    float t = 0.0;
+    float t = tStart;
 
     vec3 tint = vec3(0.0);
     float denom = 0.0;
 
-    // Traverse the full path from the face to the light.
-    // Only test faces when inside the shadow grid — lets faces far from the
-    // torch still receive shadows from occluders close to the torch.
     while (t <= ray.len) {
         if (voxel != lightVoxel && all(greaterThanEqual(voxel, GridMin)) && all(lessThan(voxel, gridMax))) {
             ivec3 local = voxel - GridMin;

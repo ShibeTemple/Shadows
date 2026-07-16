@@ -160,6 +160,8 @@ open class RayPointLight(
     protected var dynamicCleared = true
     private var dynamicUpdateTick = 0
     private var cachedDynamicFaceCount = 0
+    private var cachedEntityShadowCount = 0
+    private var cachedBlockEntityShadowCount = 0
 
     @JvmField
     val staticTexture = LightTexture()
@@ -273,11 +275,11 @@ open class RayPointLight(
 
             if (shouldUpdate) {
                 cachedDynamicFaceCount = 0
+                cachedEntityShadowCount = 0
+                cachedBlockEntityShadowCount = 0
                 profiler.push("dynamicShadows")
             manager.getLevel()?.let { level ->
                 profiler.push("collect")
-
-                dynamicCleared = false
 
                 val absolutePos = absolutePos
                 val absoluteBlockPos = absoluteBlockPos
@@ -364,7 +366,7 @@ open class RayPointLight(
                     for (entity in nearby) {
                         if (boundingBox.contains(NeoVec3i(entity.blockPosition()))) {
                             val node = Node()
-                            debugOut("entityShadows", 1)
+                            cachedEntityShadowCount++
                             EntityRenderingUtil.render(entity, poseStack, node.bufferSource)
                             nodes.add(node)
                         }
@@ -378,7 +380,7 @@ open class RayPointLight(
                     for (pos in mesh.getBlockEntities(level)) {
                         level.getBlockEntity(pos)?.let { blockEntity ->
                             val node = Node()
-                            debugOut("blockEntityShadows", 1)
+                            cachedBlockEntityShadowCount++
 
                             poseStack.pushPose()
 
@@ -408,94 +410,104 @@ open class RayPointLight(
                 poseStack.popPose()
                 profiler.pop()
 
-                profiler.push("calculate")
-                dynamicTexture.framebuffer.bind(NeoRect2i(0, 0, dynamicTexture.width!!, dynamicTexture.height!!)).use { fbo ->
-                    var cleared = false
+                // Only touch the GPU if entities were collected or the texture still has stale data.
+                if (allTextures.isNotEmpty() || !dynamicCleared) {
+                    profiler.push("calculate")
+                    dynamicTexture.framebuffer.bind(NeoRect2i(0, 0, dynamicTexture.width!!, dynamicTexture.height!!)).use { fbo ->
+                        var cleared = false
 
-                    nodes.forEach { it.buffers.forEach { (texture, consumer) -> consumer.first.flush() } }
+                        nodes.forEach { it.buffers.forEach { (texture, consumer) -> consumer.first.flush() } }
 
-                    val chunkedTextures = allTextures.chunked(8)
+                        val chunkedTextures = allTextures.chunked(8)
 
-                    for (textures in chunkedTextures) {
-                        val nodes = nodes.mapNotNull { node -> node.computeBox(textures)?.let { node to it } }
+                        for (textures in chunkedTextures) {
+                            val nodes = nodes.mapNotNull { node -> node.computeBox(textures)?.let { node to it } }
 
-                        if (nodes.isNotEmpty()) {
-                            val bvhBuffer = NeoBuffer.Native(nodes.size * 32L)
+                            if (nodes.isNotEmpty()) {
+                                val bvhBuffer = NeoBuffer.Native(nodes.size * 32L)
 
-                            bvhBuffer.write().run {
-                                var index = 0
+                                bvhBuffer.write().run {
+                                    var index = 0
 
-                                for (node in nodes) {
-                                    writeFloat(node.second.min.x)
-                                    writeFloat(node.second.min.y)
-                                    writeFloat(node.second.min.z)
-                                    writeInt(index)
+                                    for (node in nodes) {
+                                        writeFloat(node.second.min.x)
+                                        writeFloat(node.second.min.y)
+                                        writeFloat(node.second.min.z)
+                                        writeInt(index)
 
-                                    writeFloat(node.second.max.x)
-                                    writeFloat(node.second.max.y)
-                                    writeFloat(node.second.max.z)
-                                    index += node.first.getQuads(textures).size
-                                    writeInt(index)
+                                        writeFloat(node.second.max.x)
+                                        writeFloat(node.second.max.y)
+                                        writeFloat(node.second.max.z)
+                                        index += node.first.getQuads(textures).size
+                                        writeInt(index)
+                                    }
                                 }
-                            }
 
-                            dynamicBVHBuffer.bind(GlBufferTarget.ARRAY_BUFFER).use {
-                                it.bufferData(bvhBuffer, GlBufferUsage.STREAM_DRAW)
-                            }
-                            dynamicBVHCount = nodes.size
-                            glBindTexture(GL_TEXTURE_BUFFER, dynamicBVHTexId)
-                            glTexBuffer(GL_TEXTURE_BUFFER, GL_R32UI, dynamicBVHBuffer.glId)
-                            glBindTexture(GL_TEXTURE_BUFFER, 0)
-                            bvhBuffer.free()
-
-                            if (!cleared) {
-                                dynamicTexture.clear()
-                                cleared = true
-                            }
-
-                            val quads = nodes.flatMap { it.first.getQuads(textures) }
-                            val textures = textures.map { GlTexture2D[it]!! }
-
-                            cachedDynamicFaceCount += quads.size
-
-                            val texBuffer = NeoBuffer.Native(quads.size * 4L)
-
-                            texBuffer.write().run {
-                                for (quad in quads) {
-                                    writeInt(quad.second)
+                                dynamicBVHBuffer.bind(GlBufferTarget.ARRAY_BUFFER).use {
+                                    it.bufferData(bvhBuffer, GlBufferUsage.STREAM_DRAW)
                                 }
-                            }
+                                dynamicBVHCount = nodes.size
+                                glBindTexture(GL_TEXTURE_BUFFER, dynamicBVHTexId)
+                                glTexBuffer(GL_TEXTURE_BUFFER, GL_R32UI, dynamicBVHBuffer.glId)
+                                glBindTexture(GL_TEXTURE_BUFFER, 0)
+                                bvhBuffer.free()
 
-                            dynamicTextureInfoBuffer.bind(GlBufferTarget.ARRAY_BUFFER).use {
-                                it.bufferData(texBuffer, GlBufferUsage.STREAM_DRAW)
-                            }
-                            glBindTexture(GL_TEXTURE_BUFFER, dynamicTextureInfoTexId)
-                            glTexBuffer(GL_TEXTURE_BUFFER, GL_R32UI, dynamicTextureInfoBuffer.glId)
-                            glBindTexture(GL_TEXTURE_BUFFER, 0)
-                            texBuffer.free()
+                                if (!cleared) {
+                                    dynamicTexture.clear()
+                                    cleared = true
+                                }
 
-                            dynamicBuffer.lazyUploadQuads(textures, quads)()
-                            val bvhCount = dynamicBVHCount
-                            blit(
-                                mesh,
-                                dynamicTexture,
-                                dynamicBuffer.tboTexId,
-                                null,
-                                {
-                                    glActiveTexture(GL_TEXTURE0 + 8)
-                                    glBindTexture(GL_TEXTURE_BUFFER, dynamicBuffer.tboTexId)
-                                    setUniform("ShadowQuadBuffer") { set(8) }
-                                    glActiveTexture(GL_TEXTURE0 + 9)
-                                    glBindTexture(GL_TEXTURE_BUFFER, dynamicBVHTexId)
-                                    setUniform("BVHBuffer") { set(9) }
-                                    setUniform("BVHCount") { set(bvhCount) }
-                                },
-                                Vibrancy.id("block/raytraced/dynamic_blit")
-                            )
+                                val quads = nodes.flatMap { it.first.getQuads(textures) }
+                                val textures = textures.map { GlTexture2D[it]!! }
+
+                                cachedDynamicFaceCount += quads.size
+
+                                val texBuffer = NeoBuffer.Native(quads.size * 4L)
+
+                                texBuffer.write().run {
+                                    for (quad in quads) {
+                                        writeInt(quad.second)
+                                    }
+                                }
+
+                                dynamicTextureInfoBuffer.bind(GlBufferTarget.ARRAY_BUFFER).use {
+                                    it.bufferData(texBuffer, GlBufferUsage.STREAM_DRAW)
+                                }
+                                glBindTexture(GL_TEXTURE_BUFFER, dynamicTextureInfoTexId)
+                                glTexBuffer(GL_TEXTURE_BUFFER, GL_R32UI, dynamicTextureInfoBuffer.glId)
+                                glBindTexture(GL_TEXTURE_BUFFER, 0)
+                                texBuffer.free()
+
+                                dynamicBuffer.lazyUploadQuads(textures, quads)()
+                                val bvhCount = dynamicBVHCount
+                                blit(
+                                    mesh,
+                                    dynamicTexture,
+                                    dynamicBuffer.tboTexId,
+                                    null,
+                                    {
+                                        glActiveTexture(GL_TEXTURE0 + 8)
+                                        glBindTexture(GL_TEXTURE_BUFFER, dynamicBuffer.tboTexId)
+                                        setUniform("ShadowQuadBuffer") { set(8) }
+                                        glActiveTexture(GL_TEXTURE0 + 9)
+                                        glBindTexture(GL_TEXTURE_BUFFER, dynamicBVHTexId)
+                                        setUniform("BVHBuffer") { set(9) }
+                                        setUniform("BVHCount") { set(bvhCount) }
+                                    },
+                                    Vibrancy.id("block/raytraced/dynamic_blit")
+                                )
+                            }
+                        }
+
+                        if (cleared) {
+                            dynamicCleared = false
+                        } else {
+                            dynamicTexture.clear()
+                            dynamicCleared = true
                         }
                     }
+                    profiler.pop()
                 }
-                profiler.pop()
 
             }
             profiler.pop()
@@ -503,6 +515,8 @@ open class RayPointLight(
 
             debugOut("lightsWithEntityShadows", 1)
             debugOut("numDynamicShadowFaces", cachedDynamicFaceCount)
+            debugOut("entityShadows", cachedEntityShadowCount)
+            debugOut("blockEntityShadows", cachedBlockEntityShadowCount)
         } else {
             if (!dynamicCleared) {
                 dynamicTexture.clear()

@@ -51,6 +51,11 @@ object RayPointLightType : BlockLightType<RayPointLightInfo, HashMapBlockLightSt
                     .toList()
                 profiler.pop()
 
+                val lightVisible = lights.map { light ->
+                    light.first.sections.any { pos -> manager.isSectionVisible(pos) } &&
+                    (!VibrancyConfig.frustumCulling || manager.testFrustum(light.first.pos, data, light.first.boundingBox))
+                }
+
                 synchronized(manager.sectionLock) {
                     profiler.push("update")
                     val entityShadowDistance = manager.getRenderDistance(VibrancyConfig.entityShadowDistance)
@@ -59,7 +64,7 @@ object RayPointLightType : BlockLightType<RayPointLightInfo, HashMapBlockLightSt
                             data,
                             manager,
                             debugOut,
-                            (VibrancyConfig.entityShadowsEnabled || VibrancyConfig.blockEntityShadows) && index < VibrancyConfig.entityShadowMaxBlockLights && light.second < entityShadowDistance,
+                            lightVisible[index] && (VibrancyConfig.entityShadowsEnabled || VibrancyConfig.blockEntityShadows) && index < VibrancyConfig.entityShadowMaxBlockLights && light.second < entityShadowDistance,
                             profiler
                         )
                     }
@@ -79,40 +84,58 @@ object RayPointLightType : BlockLightType<RayPointLightInfo, HashMapBlockLightSt
                     profiler.pop()
 
                     val highQualityDistance = 2f * 2f * 16f * 16f
-                    val lights = lights.filter {
-                        it.first.sections.any { pos -> manager.isSectionVisible(pos) } &&
-                        (!VibrancyConfig.frustumCulling || manager.testFrustum(it.first.pos, data, it.first.boundingBox))
-                    }
+                    val lights = lights.filterIndexed { i, _ -> lightVisible[i] }
                     val atlas = NeoAtlas.blocks
+                    val blendEq = if (VibrancyConfig.limitLightBrightness) GlBlendEquation.MAX else GlBlendEquation.ADD
 
-                    temp.bind().use { fbo ->
-                        lights.forEachIndexed { index, light ->
-                            if (light.second < highQualityDistance && index <= VibrancyConfig.rayLightMaxHighQuality) {
-                                profiler.push("clear")
-                                fbo.clear(GlClearBit.Color(NeoColor.FULL_OFF))
-                                profiler.pop()
-
-                                profiler.push("render")
-                                light.first.render(data, settings.shader, atlas, debugOut, profiler)
-                                profiler.pop()
-
-                                profiler.push("blit")
-                                manager.blitFromTemp(result, temp)
-                                profiler.pop()
-                            }
+                    // Split visible lights by quality tier (index in sorted-by-distance list).
+                    val hqLights = mutableListOf<Pair<RayPointLight, Float>>()
+                    val lqLights = mutableListOf<Pair<RayPointLight, Float>>()
+                    lights.forEachIndexed { index, light ->
+                        if (light.second < highQualityDistance && index <= VibrancyConfig.rayLightMaxHighQuality) {
+                            hqLights.add(light)
+                        } else {
+                            lqLights.add(light)
                         }
                     }
 
+                    // Batch all HQ lights: one clear, one draw pass, one blit.
+                    // Previously each light did its own clear + blit (N screen-sized ops).
+                    // Now all HQ lights accumulate into temp with ONE/ONE additive blend
+                    // (or MAX when brightness limiting is on), then a single blit to result.
+                    if (hqLights.isNotEmpty()) {
+                        temp.bind().use { fbo ->
+                            profiler.push("clear")
+                            fbo.clear(GlClearBit.Color(NeoColor.FULL_OFF))
+                            profiler.pop()
+
+                            GlBlendShard.Enabled(
+                                BlendFunction.Basic(GlBlendingFactor.ONE, GlBlendingFactor.ONE),
+                                blendEq
+                            ).bind().use {
+                                hqLights.forEach { light ->
+                                    if (!light.first.mesh.lightMesh.empty) {
+                                        profiler.push("render")
+                                        light.first.render(data, settings.shader, atlas, debugOut, profiler)
+                                        profiler.pop()
+                                    }
+                                }
+                            }
+                        }
+
+                        profiler.push("blit")
+                        manager.blitFromTemp(result, temp)
+                        profiler.pop()
+                    }
+
+                    // LQ lights draw directly to result, same blend as before.
                     GlBlendShard.Enabled(
-                        BlendFunction.Basic(
-                            GlBlendingFactor.ONE,
-                            GlBlendingFactor.ONE
-                        ),
-                        if (VibrancyConfig.limitLightBrightness) GlBlendEquation.MAX else GlBlendEquation.ADD
+                        BlendFunction.Basic(GlBlendingFactor.ONE, GlBlendingFactor.ONE),
+                        blendEq
                     ).bind().use {
-                        result.bind().use { fbo ->
-                            lights.forEachIndexed { index, light ->
-                                if (light.second >= highQualityDistance || index > VibrancyConfig.rayLightMaxHighQuality) {
+                        result.bind().use {
+                            lqLights.forEach { light ->
+                                if (!light.first.mesh.lightMesh.empty) {
                                     profiler.push("render")
                                     light.first.render(data, settings.shader, atlas, debugOut, profiler)
                                     profiler.pop()

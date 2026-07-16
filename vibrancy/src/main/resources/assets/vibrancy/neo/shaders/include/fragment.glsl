@@ -39,7 +39,10 @@ vec3 applyLight(vec3 lightColor, vec4 blockColor, vec3 pos) {
 }
 
 vec3 applyLight(vec3 lightColor, vec4 blockColor, vec3 pos, vec3 lightPos, float flicker, float time) {
-    time *= 4;
-    vec3 flickeredColor = lightColor * (1 + flicker * (mix(hash4(vec4(lightPos, floor(time))), hash4(vec4(lightPos, floor(time) + 1)), fract(time)) * 2 - 1));
-    return applyLight(flickeredColor, blockColor, pos);
+    if (flicker > 0.0) {
+        time *= 4;
+        vec3 flickeredColor = lightColor * (1 + flicker * (mix(hash4(vec4(lightPos, floor(time))), hash4(vec4(lightPos, floor(time) + 1)), fract(time)) * 2 - 1));
+        return applyLight(flickeredColor, blockColor, pos);
+    }
+    return applyLight(lightColor, blockColor, pos);
 }
