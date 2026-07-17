@@ -97,9 +97,12 @@ repositories {
     maven("https://maven.isxander.dev/releases") {
         name = "Xander Maven"
     }
-    maven("https://maven.ryanhcode.dev/releases") {
-        name = "RyanHCode Maven"
-    }
+    maven("https://maven.ryanhcode.dev/releases") { name = "RyanHCode Maven" }
+    maven("https://mvn.devos.one/snapshots/") { name = "devos.one Snapshots" }
+    maven("https://mvn.devos.one/releases/") { name = "devos.one Releases" }
+    maven("https://maven.createmod.net/") { name = "CreateMod Maven" }
+    maven("https://raw.githubusercontent.com/Fuzss/modresources/main/maven") { name = "Fuzss Mod Resources" }
+    maven("https://maven.jamieswhiteshirt.com/libs-release") { name = "JamiesWhiteshirt" }
     maven {
         name = "Fabric"
         url = uri("https://maven.fabricmc.net")
@@ -107,7 +110,6 @@ repositories {
     maven("https://maven.quiltmc.org/repository/release/") {
         name = "Quilt Release"
     }
-
     ivy {
         url = uri("https://github.com/TheTypholorian/big_shot_lib/releases/download")
         patternLayout {
@@ -174,6 +176,17 @@ dependencies {
         include(libs.sableCompanionFabric)
         modApi(libs.sableCompanionFabric)
     }
+
+    // Indium bridges Sodium with Fabric's Rendering API (FRAPI). Required for mods that use
+    // FRAPI (Create, LED) to avoid BlockModel.<clinit> NPE under Sodium.
+    if (hasProperty("deps.indium")) modLocalRuntime("maven.modrinth:indium:${property("deps.indium")}")
+    // Create Fabric: use Maven coordinate so Gradle resolves all transitive deps automatically
+    // (flywheel, ponder, registrate, porting_lib_*, forgeconfigapiport, milk-lib, reach-entity-attributes).
+    if (hasProperty("deps.create")) modLocalRuntime("com.simibubi.create:create-fabric:${property("deps.create")}")
+    // LED (Light Emitting Diode): requires JMXL >= 1.4; the only available JMXL for 1.20.1
+    // (1.4+mc1.20.5) targets Java 21 (class file 65) but dev runs Java 17 (class file 61).
+    // No compatible JMXL exists — LED cannot load in this dev environment.
+    // Block light JSON configs for LED fixtures ship in assets/led/ and are picked up at runtime.
 }
 
 fabricApi {
@@ -190,6 +203,13 @@ loom {
             configName = "Run Client (MC $mcVersion Fabric)"
             ideConfigGenerated(true)
             runDir("run")
+            // Temurin 17.0.18 aarch64 has two JVM bugs in dev:
+            //   1. C2 JIT: SIGBUS in Arena::destruct_contents compiling MixinProcessor.applyMixins.
+            //      Fix: exclude that one method from JIT; C2 runs normally for everything else.
+            //   2. Class verifier: SIGSEGV in Dictionary::find when verifying BehaviorBuilder
+            //      (triggered by villager/entity loading). Fix: skip bytecode verification.
+            vmArg("-XX:CompileCommand=exclude,org.spongepowered.asm.mixin.transformer.MixinProcessor::applyMixins")
+            vmArg("-Xverify:none")
         }
         named("server") {
             configName = "Run Server (MC $mcVersion Fabric)"
