@@ -28,7 +28,7 @@ open class VoxelGridBuffer(
     var gridSizeZ: Int = 0; private set
     var gridCellCount: Int = 0; private set
 
-    open fun lazyUpload(texWidth: Int, texHeight: Int, numFaces: Int, bounds: AbstractRect3<Int>, faces: List<Pair<IVec3<Int>, List<PrimitiveQuad>>>): Pair<AutoCloseable, () -> Unit> {
+    open fun lazyUpload(texWidth: Int, texHeight: Int, numFaces: Int, bounds: AbstractRect3<Int>, faces: List<Pair<IVec3<Int>, List<PrimitiveQuad>>>, beRelXYZ: IntArray = IntArray(0)): Pair<AutoCloseable, () -> Unit> {
         val minX = bounds.min.x; val minY = bounds.min.y; val minZ = bounds.min.z
         val szX = bounds.sizeInclusive.x; val szY = bounds.sizeInclusive.y; val szZ = bounds.sizeInclusive.z
 
@@ -48,6 +48,22 @@ open class VoxelGridBuffer(
                 cellData[idx] = (from and 0xFFFF) or (to shl 16)
             }
             quadIndex += faceList.size
+        }
+
+        // Mark block entity positions (flat x,y,z relative triples) as fully-opaque sentinels.
+        // The shader checks 0xFFFFFFFF and returns shadow=0 immediately — Flywheel-managed
+        // entities (e.g. Create cogwheels) bypass FRAPI mesh capture, so no static quads exist
+        // for them and the sentinel is the only way to make them cast correct static shadows.
+        var bi = 0
+        while (bi < beRelXYZ.size) {
+            val lx = beRelXYZ[bi] - minX
+            val ly = beRelXYZ[bi + 1] - minY
+            val lz = beRelXYZ[bi + 2] - minZ
+            if (lx >= 0 && ly >= 0 && lz >= 0 && lx < szX && ly < szY && lz < szZ) {
+                val idx = lz * szX * szY + ly * szX + lx
+                if (cellData[idx] == 0) cellData[idx] = -1 // 0xFFFFFFFF sentinel
+            }
+            bi += 3
         }
 
         gridBuffer.write().run {

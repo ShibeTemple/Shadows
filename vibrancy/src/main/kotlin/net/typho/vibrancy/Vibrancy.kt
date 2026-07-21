@@ -35,7 +35,6 @@ import net.typho.vibrancy.sky.SkyLightInfo
 import net.typho.vibrancy.sky.SkyLightInfoLoader
 import net.typho.vibrancy.sky.SkyLightRegistry
 import net.typho.vibrancy.sky.SkyLightStorage
-import org.lwjgl.system.NativeResource
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 
@@ -115,6 +114,14 @@ object Vibrancy : BigShotCommonEntrypoint, BigShotClientEntrypoint {
         }
     }
 
+    //? if <1.21 {
+    // RenderTargetAccessor exposes the protected depthBufferId field. Sodium 0.5.x stores
+    // its depth-stencil GL texture ID there. Cached by ID so ofExisting() only allocates
+    // on startup / window resize (avoids per-frame GC pressure).
+    private var cachedMainDepthTexId: Int = -1
+    private var cachedMainDepthTex: NeoGlTexture2D? = null
+    //? }
+
     @JvmStatic
     fun depthBlitState(from: GlTexture2D) = GlDrawState.Basic(
         colorMask = GlColorMaskShard(ColorMask(false, false, false, false)),
@@ -164,9 +171,24 @@ object Vibrancy : BigShotCommonEntrypoint, BigShotClientEntrypoint {
                 TEMP_FRAMEBUFFER.bind(NeoRect2i(0, 0, width, height)).use { fbo ->
                     fbo.clear(GlClearBit.Color(NeoColor.FULL_OFF), GlClearBit.Depth(1f))
 
-                    depthBlitState(data.target.depthAttachment as GlTexture2D).bind().use {
-                        Mesh.SCREEN_MESH.draw()
+                    //? if <1.21 {
+                    val depthId = (Minecraft.getInstance().mainRenderTarget as? net.typho.vibrancy.mixin.RenderTargetAccessor)
+                        ?.`vibrancy$getDepthBufferId`() ?: -1
+                    if (depthId > 0) {
+                        if (depthId != cachedMainDepthTexId) {
+                            cachedMainDepthTexId = depthId
+                            cachedMainDepthTex = NeoGlTexture2D.ofExisting(depthId, GlTextureTarget.TEXTURE_2D)
+                        }
+                        cachedMainDepthTex?.let { depthTex ->
+                            depthBlitState(depthTex).bind().use {
+                                Mesh.SCREEN_MESH.draw()
+                            }
+                        }
                     }
+                    //? } else {
+                    /*depthBlitState(data.target.depthAttachment as GlTexture2D).bind().use {
+                        Mesh.SCREEN_MESH.draw()
+                    }*///? }
 
                     RESULT_FRAMEBUFFER.bind().use { fbo ->
                         fbo.clear(GlClearBit.Color(NeoColor.FULL_OFF))

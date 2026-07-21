@@ -114,6 +114,14 @@ vec3 castShadow(Ray ray) {
             ivec3 local = voxel - GridMin;
             int cellIdx = local.z * GridSize.x * GridSize.y + local.y * GridSize.x + local.x;
             uint cellRange = texelFetch(GridBuffer, 8 + cellIdx).r;
+
+            // 0xFFFFFFFF marks a block entity position with no static geometry (e.g. a
+            // Flywheel-managed cogwheel that bypasses the FRAPI mesh capture path).
+            // Treat the entire block as fully opaque so the floor below is correctly shadowed.
+            if (cellRange == 0xFFFFFFFFu) {
+                return vec3(0.0);
+            }
+
             uint from = cellRange & 0xFFFFu;
             uint to   = cellRange >> 16;
 

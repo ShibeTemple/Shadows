@@ -33,7 +33,7 @@ open class StaticOneStepBlockLightMeshManager(
     val lightMesh = LightMesh(GlBufferUsage.STATIC_DRAW)
     @JvmField
     val gridBuffer = VoxelGridBuffer(GlBufferUsage.STATIC_DRAW)
-    @JvmField
+    @JvmField @Volatile
     var blockEntities: List<BlockPos>? = null
     @JvmField
     protected var meshTask: GlTask<LightMesh.ComplexMeshData?>? = null
@@ -50,8 +50,9 @@ open class StaticOneStepBlockLightMeshManager(
 
         shadowBounds(this).iterator().forEach { pos ->
             val block = (pos + this.pos).blockPos
-
-            if (level.getBlockEntity(block) != null) {
+            // isLoaded guard prevents getChunkAt() from throwing when boundary
+            // chunks are not yet loaded at world join.
+            if (level.isLoaded(block) && level.getBlockEntity(block) != null) {
                 list.add(block)
             }
         }
@@ -148,11 +149,28 @@ open class StaticOneStepBlockLightMeshManager(
 
         lastNumFaces = numFaces
 
+        // Use the block entity list pre-cached by getBlockEntities() — called every frame from
+        // RayPointLight before tick(). Avoids an O(shadowBounds) level scan per mesh rebuild.
+        // Converted to a flat relative-coordinate IntArray so VoxelGridBuffer needs no Minecraft
+        // types and no IVec3 construction. If null (very first rebuild for this light before
+        // getBlockEntities() has been called), no sentinels are set — acceptable for one frame.
+        val capturedBe = blockEntities
+        val beRelXYZ: IntArray = if (capturedBe != null && capturedBe.isNotEmpty()) {
+            val lx = this.pos.x; val ly = this.pos.y; val lz = this.pos.z
+            IntArray(capturedBe.size * 3).also { arr ->
+                capturedBe.forEachIndexed { i, bp ->
+                    arr[i * 3] = bp.x - lx
+                    arr[i * 3 + 1] = bp.y - ly
+                    arr[i * 3 + 2] = bp.z - lz
+                }
+            }
+        } else IntArray(0)
+
         if (isCancelled()) {
             return AutoCloseable { } to { null }
         }
 
-        val shadows = gridBuffer.lazyUpload(NeoAtlas.blocks.width, NeoAtlas.blocks.height, numFaces, shadowBounds, faces)
+        val shadows = gridBuffer.lazyUpload(NeoAtlas.blocks.width, NeoAtlas.blocks.height, numFaces, shadowBounds, faces, beRelXYZ)
 
         if (isCancelled()) {
             return shadows.first to { null }
@@ -164,7 +182,6 @@ open class StaticOneStepBlockLightMeshManager(
             shadows.first.close()
             light.first.close()
         } to {
-            blockEntities = null
             shadows.second()
             LightMesh.ComplexMeshData(
                 faces,
