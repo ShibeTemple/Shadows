@@ -1,0 +1,9 @@
+{
+  "type": "vibrancy:subtle",
+  "color": [ 0.85, 0.95, 1.0 ],
+  "brightness": 0.9,
+  "enabled": {
+    "default": false,
+    "entries": [{ "matches": { "active": "true" }, "value": true }]
+  }
+}
