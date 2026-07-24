@@ -11,7 +11,9 @@ struct Light {
 
 uniform sampler2D Sampler0;
 uniform sampler2D Sampler1;
+uniform sampler2D Sampler2;  // scene depth
 uniform ivec2 Sampler0Size;
+uniform bool SceneDepthAvailable;
 uniform float LightBrightness;
 
 uniform bool SpecularReflectionsEnabled;
@@ -37,6 +39,13 @@ void main() {
 
     if (block.a == 0) {
         discard;
+    }
+
+    if (SceneDepthAvailable) {
+        vec2 screenUV = gl_FragCoord.xy / vec2(textureSize(Sampler2, 0));
+        if (gl_FragCoord.z > texture(Sampler2, screenUV).r + 0.0001) {
+            discard;
+        }
     }
 
     vec3 lightColor;

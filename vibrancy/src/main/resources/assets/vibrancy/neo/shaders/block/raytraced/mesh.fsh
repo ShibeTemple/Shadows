@@ -7,6 +7,8 @@ uniform ivec2 Sampler0Size;
 uniform sampler2D Sampler1;
 uniform sampler2D Sampler2;
 uniform sampler2D Sampler3;
+uniform sampler2D Sampler4;  // scene depth
+uniform bool SceneDepthAvailable;
 
 uniform vec3 CameraPos;
 uniform vec3 LightColor;
@@ -37,6 +39,13 @@ void main() {
     if (dot(staticShadow, vec3(1.0)) < 0.001) {
         fragColor = vec3(0.0);
         return;
+    }
+
+    if (SceneDepthAvailable) {
+        vec2 screenUV = gl_FragCoord.xy / vec2(textureSize(Sampler4, 0));
+        if (gl_FragCoord.z > texture(Sampler4, screenUV).r + 0.0001) {
+            discard;
+        }
     }
 
     vec4 block = texture(Sampler0, texCoord0) * vertexColor;

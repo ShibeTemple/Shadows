@@ -67,6 +67,11 @@ object SubtleLightType : BlockLightType<SubtleLightInfo, SubtleLightStorage> {
                         ReflectionAtlases[NeoIdentifier("blocks")], //NeoAtlas.blocks.location
                         GlTextureTarget.TEXTURE_2D
                     ))
+                    val sceneDepth = Vibrancy.frameSceneDepth
+                    if (sceneDepth != null) {
+                        settings.shader.setTexture(2, GlTextureBinding.FromInstance(sceneDepth, GlTextureTarget.TEXTURE_2D))
+                    }
+                    settings.shader.setUniform("SceneDepthAvailable") { set(if (sceneDepth != null) 1 else 0) }
                     settings.shader.setUniform("ProjMat") { set(data.projMat) }
                     settings.shader.setUniform("ModelViewMat") { set(data.modelViewMat.translate((-data.camera.pos).toJOML(), Matrix4f())) }
                     settings.shader.setUniform("LightBrightness") { set(VibrancyConfig.subtleLightBrightness) }

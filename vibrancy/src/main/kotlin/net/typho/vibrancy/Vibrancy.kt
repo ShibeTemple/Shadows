@@ -11,8 +11,6 @@ import net.typho.big_shot_lib.api.client.rendering.opengl.resource.impl.NeoGlFra
 import net.typho.big_shot_lib.api.client.rendering.opengl.resource.impl.NeoGlTexture2D
 import net.typho.big_shot_lib.api.client.rendering.opengl.resource.type.GlTexture2D
 import net.typho.big_shot_lib.api.client.rendering.opengl.state.*
-import net.typho.big_shot_lib.api.client.rendering.opengl.util.ColorMask
-import net.typho.big_shot_lib.api.client.rendering.util.Mesh
 import net.typho.big_shot_lib.api.client.rendering.util.NeoVertexFormat
 import net.typho.big_shot_lib.api.client.util.BigShotClientEntrypoint
 import net.typho.big_shot_lib.api.client.util.DebugScreenFactory
@@ -122,19 +120,11 @@ object Vibrancy : BigShotCommonEntrypoint, BigShotClientEntrypoint {
     private var cachedMainDepthTex: NeoGlTexture2D? = null
     //? }
 
+    // Set to the scene depth texture before lightManager.render(), cleared after.
+    // Light mesh shaders sample this for a per-fragment software depth test that
+    // replaces the previous per-frame fullscreen depth-blit shader pass.
     @JvmStatic
-    fun depthBlitState(from: GlTexture2D) = GlDrawState.Basic(
-        colorMask = GlColorMaskShard(ColorMask(false, false, false, false)),
-        depth = GlDepthShard.Enabled(
-            GlAlphaFunction.ALWAYS,
-            true
-        ),
-        shader = GlShaderShard.FromLocation(
-            id("depth_blit"),
-            { },
-            GlTextureBinding.FromInstance(from, GlTextureTarget.TEXTURE_2D)
-        )
-    )
+    var frameSceneDepth: GlTexture2D? = null
 
     @JvmStatic
     fun render(data: RenderEventData) {
@@ -179,16 +169,11 @@ object Vibrancy : BigShotCommonEntrypoint, BigShotClientEntrypoint {
                             cachedMainDepthTexId = depthId
                             cachedMainDepthTex = NeoGlTexture2D.ofExisting(depthId, GlTextureTarget.TEXTURE_2D)
                         }
-                        cachedMainDepthTex?.let { depthTex ->
-                            depthBlitState(depthTex).bind().use {
-                                Mesh.SCREEN_MESH.draw()
-                            }
-                        }
+                        frameSceneDepth = cachedMainDepthTex
                     }
                     //? } else {
-                    /*depthBlitState(data.target.depthAttachment as GlTexture2D).bind().use {
-                        Mesh.SCREEN_MESH.draw()
-                    }*///? }
+                    /*frameSceneDepth = data.target.depthAttachment as? GlTexture2D*/
+                    //? }
 
                     RESULT_FRAMEBUFFER.bind().use { fbo ->
                         fbo.clear(GlClearBit.Color(NeoColor.FULL_OFF))
@@ -199,6 +184,8 @@ object Vibrancy : BigShotCommonEntrypoint, BigShotClientEntrypoint {
                         RESULT_FRAMEBUFFER,
                         TEMP_FRAMEBUFFER
                     )
+
+                    frameSceneDepth = null
                 }
             }
 

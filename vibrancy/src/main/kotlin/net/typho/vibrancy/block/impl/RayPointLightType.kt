@@ -78,6 +78,11 @@ object RayPointLightType : BlockLightType<RayPointLightInfo, HashMapBlockLightSt
                         ReflectionAtlases[NeoIdentifier("blocks")], //NeoAtlas.blocks.location
                         GlTextureTarget.TEXTURE_2D
                     ))
+                    val sceneDepth = Vibrancy.frameSceneDepth
+                    if (sceneDepth != null) {
+                        settings.shader.setTexture(4, GlTextureBinding.FromInstance(sceneDepth, GlTextureTarget.TEXTURE_2D))
+                    }
+                    settings.shader.setUniform("SceneDepthAvailable") { set(if (sceneDepth != null) 1 else 0) }
                     settings.shader.setUniform("ProjMat") { set(data.projMat) }
                     settings.shader.setUniform("ModelViewMat") { set(data.modelViewMat) }
                     FogUtil.INSTANCE.upload(settings.shader)

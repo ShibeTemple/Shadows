@@ -5,7 +5,6 @@ import net.typho.big_shot_lib.api.client.rendering.opengl.resource.bound.GlBound
 import net.typho.big_shot_lib.api.client.rendering.opengl.resource.bound.GlBufferWriter
 import net.typho.big_shot_lib.api.client.rendering.opengl.resource.type.GlTexture2D
 import net.typho.big_shot_lib.api.client.rendering.opengl.state.*
-import net.typho.big_shot_lib.api.client.rendering.opengl.util.PolygonOffset
 import net.typho.big_shot_lib.api.client.rendering.util.Mesh
 import net.typho.big_shot_lib.api.client.rendering.util.NeoVertexFormat
 import net.typho.big_shot_lib.api.client.rendering.util.quad.NeoBakedQuad
@@ -64,16 +63,7 @@ open class LightMesh(
             cull = GlCullShard.Enabled(
                 GlCullFace.BACK
             ),
-            depth = GlDepthShard.Enabled(
-                GlAlphaFunction.LEQUAL,
-                false
-            ),
-            polygonOffset = GlPolygonOffsetShard.Enabled(
-                PolygonOffset(
-                    -1f,
-                    -10f
-                )
-            ),
+            depth = GlDepthShard.Disabled,
             shader = GlShaderShard.FromLocation(
                 shader,
                 uniforms,

@@ -452,6 +452,11 @@ class OverworldSkyLightStorage : ChunkedSkyLightStorage<OverworldSkyLightInfo, O
                     ReflectionAtlases[NeoIdentifier("blocks")], //NeoAtlas.blocks.location
                     GlTextureTarget.TEXTURE_2D
                 ))
+                val sceneDepth = net.typho.vibrancy.Vibrancy.frameSceneDepth
+                if (sceneDepth != null) {
+                    settings.shader.setTexture(5, GlTextureBinding.FromInstance(sceneDepth, GlTextureTarget.TEXTURE_2D))
+                }
+                settings.shader.setUniform("SceneDepthAvailable") { set(if (sceneDepth != null) 1 else 0) }
 
                 for ((pos, chunk) in chunks) {
                     //if (chunk.box == null || data.frustum.testAab((chunk.box!!.min.toFloat() - data.camera.pos).toJOML(), (chunk.box!!.min.toFloat() + 1f - data.camera.pos).toJOML())) {

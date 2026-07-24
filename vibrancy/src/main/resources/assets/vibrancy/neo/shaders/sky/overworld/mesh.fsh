@@ -8,6 +8,8 @@ uniform sampler2DShadow Sampler1; // solid shadow (depth)
 uniform sampler2D Sampler2; // translucent shadow
 uniform sampler2DShadow Sampler3; // translucent shadow (depth)
 uniform sampler2D Sampler4; // reflection atlas
+uniform sampler2D Sampler5; // scene depth
+uniform bool SceneDepthAvailable;
 
 uniform vec3 CameraPos;
 uniform vec3 LightColor;
@@ -44,6 +46,13 @@ void main() {
     // discard here to not mess up derivatives
     if (block.a < 0.01) {
         discard;
+    }
+
+    if (SceneDepthAvailable) {
+        vec2 screenUV = gl_FragCoord.xy / vec2(textureSize(Sampler5, 0));
+        if (gl_FragCoord.z > texture(Sampler5, screenUV).r + 0.0001) {
+            discard;
+        }
     }
 
     vec3 uv = texCoord1 + dFdx(texCoord1) * a + dFdy(texCoord1) * b;
